@@ -10,7 +10,7 @@ from src.api.data_model import Chat_Message, Chat_Response
 from src.database.pd_db import DatabaseSession, get_conversation_history
 from src.database.schemas import ChatLog
 from src.error_trace.errorlogger import system_logger
-from src.services.techstack_agent_module.agent import techstack_agent_graph
+from src.services.mastercard_solution_tech_stack_agent_module.agent import techstack_agent_graph
 
 logger = logging.getLogger(__name__)
 
