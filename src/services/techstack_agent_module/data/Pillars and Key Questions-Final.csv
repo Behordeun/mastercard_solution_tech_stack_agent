@@ -1,0 +1,151 @@
+﻿,Pillar,Description,Key Questions
+1,Software,"Focuses on how the solution will be built, including frontend, backend, APIs, and cloud infrastructure.","How do you envision users interacting with your platform? (Web app, mobile app, or both?)"
+2,,,"Do you require integration with third-party services, such as payment processors or external APIs?"
+3,,,What level of scalability do you anticipate for your platform?
+4,,,"Would you prefer a low-code/no-code approach, or do you need a custom-built system?"
+5,,,About how many people do you think will use this product?
+6,,,What Programming Language would you like to use.
+7,,,Do you require offline functionality for users who may not always have internet access?
+8,,,Do you need native mobile apps or progressive web apps?
+9,,,"What mobile platforms (iOS, Android) will be prioritized?"
+,,,
+10,Security,Addresses the security measures needed to protect user data and system integrity.,What level of security do you require for user data? Is encryption necessary?
+11,,,How will you handle user authentication and authorization?
+12,,,Do you need to implement a firewall or intrusion detection system?
+13,,,What measures will be taken to ensure data integrity and prevent unauthorized access?
+14,,,How will you handle security updates and vulnerability management?
+,,,
+15,Infrastructure,"Focuses on the underlying infrastructure, including cloud services and hosting.",Do you prefer a cloud-based solution or an on-premises deployment?
+16,,,"What cloud provider do you plan to use (AWS, Azure, Google Cloud)?"
+17,,,How will you manage backups and disaster recovery?
+18,,,What level of uptime and availability do you require?
+19,,,Do you need to support multiple geographic regions or data centers?
+20,,,How will you ensure business continuity in case of system failure?
+21,,,What disaster recovery plans will be in place?
+22,,,How quickly must services be restored after a disruption?
+,,,
+23,Integration,Deals with how the solution will integrate with existing systems and services.,Do you require real-time data synchronization?
+24,,,What APIs or protocols do you plan to use for integration?
+25,,,How will you handle data mapping and transformation?
+26,,,Do you need to support legacy systems or data formats?
+27,,,What are the primary user personas for your platform?
+,,,
+28,User Experience,Focuses on the design and usability of the solution.,Do you have specific design guidelines or branding requirements?
+29,,,How will you ensure accessibility for users with disabilities?
+30,,,What user feedback mechanisms do you plan to implement?
+31,,,How will you handle user onboarding and training?
+32,,,Will you support mobile-first or responsive design?
+33,,,"What are your performance expectations (response time, load times)?"
+,,,
+34,Performance,Addresses the performance and scalability of the solution.,How much traffic are you expecting on the platform
+35,,,How will you handle peak loads and traffic spikes?
+36,,,Do you need to support high availability and failover capabilities?
+37,,,What monitoring and performance tuning tools do you plan to use?
+38,,,How will you measure and report system performance?
+39,,,"What industry regulations do you need to comply with (e.g., GDPR, HIPAA)?"
+,,,
+40,Compliance,Focuses on legal and regulatory compliance requirements.,How will you handle data retention and deletion policies?
+41,,,Do you need to implement data anonymization or pseudonymization?
+42,,,What reporting and auditing capabilities do you require for compliance?
+43,,,How will you ensure user consent and data privacy?
+44,,,Who will be responsible for enforcing compliance policies?
+45,,,What internal governance frameworks will be established?
+,,,
+46,Support,Addresses the support and maintenance of the solution.,How will regulatory changes be tracked and implemented?
+47,,,How will you handle user support requests and issue tracking?
+48,,,Do you need to implement a knowledge base or self-service portal?
+49,,,What training and documentation will be provided to users?
+50,,,How will you handle software updates and maintenance?
+,,,
+51,Cost,Focuses on budget and financial considerations.,What is your budget for the project?
+52,,,"How will you handle ongoing operational costs (hosting, maintenance)?"
+53,,,Do you need to consider licensing fees for software or services?
+54,,,What is your expected return on investment (ROI)?
+55,,,How will you manage cost overruns or unexpected expenses?
+,,,
+56,Scalability,Addresses how the solution will scale to meet future needs.,What are your growth projections for the next 1-3 years?
+57,,,How will you handle increased user demand and data volume?
+58,,,Do you need to support horizontal or vertical scaling?
+59,,,What strategies will ensure system performance as you scale?
+60,,,How will you monitor and manage system capacity?
+,,,
+61,Interoperability,Focuses on how the solution will work with other systems and technologies.,(Same as Integration)
+,,,
+62,User Management,Focuses on how users will be managed within the system.,How will you handle user registration and onboarding? / How do you want users to sign up or log in?
+63,,,What user roles and permissions should be defined?
+64,,,"Do you need user self-service features (e.g., password reset)?"
+65,,,How will you manage user data and privacy preferences?
+66,,,What reporting capabilities do you need for user activity?
+67,,,How do you want users to sign up or log in?
+68,,,Do you need to verify users' identities for security reasons (e.g with NIN or BVN)?
+69,,,Do you want users to get notifications like updates or reminders?
+,,,
+70,Monitoring,Addresses how the system will be monitored and maintained.,What monitoring tools will be used?
+71,,,How will you handle alerts and notifications for system issues?
+72,,,Do you need logging and auditing capabilities?
+73,,,What metrics will track system health?
+74,,,How will you handle incident response?
+75,,,How long can your system be down before it‚Äôs a big problem?
+76,,,How do you want to handle problems if they happen?
+77,,,How often do you expect to update or improve your system?
+78,,,Do you want to track how people are using your system?
+79,,,"If something goes wrong, do you need to recover lost data?"
+,,,
+80,Testing,Focuses on how the solution will be tested and validated.,What testing methodologies do you plan to use?
+81,,,How will you handle user acceptance testing (UAT)?
+82,,,Do you need automated testing tools?
+83,,,What performance and load testing strategies will you use?
+84,,,How will you manage test data and environments?
+85,,,Do you need a way to test new ideas without affecting real users?
+,,,
+86,Deployment,Addresses how the solution will be deployed and maintained.,"What deployment strategy will you use (blue-green, canary)?"
+87,,,How will you manage version control and release management?
+88,,,Do you need CI/CD pipelines?
+89,,,What rollback strategies are in place for failed deployments?
+90,,,How will you manage environment configurations?
+,,,
+91,Collaboration,Focuses on how users will collaborate and communicate within the system.,"What collaboration features are needed (chat, file sharing, video conferencing)?"
+92,,,How will you handle user notifications?
+93,,,Do you need version control for shared documents?
+94,,,What collaboration tools will be integrated?
+95,,,How will you manage user permissions for shared resources?
+,,,
+96,Analytics,"Addresses how data will be collected, analyzed, and reported.",What KPIs do you want to track?
+97,,,How will you collect and store analytics data?
+98,,,Do you need real-time analytics or periodic reporting?
+99,,,What visualization tools will you use?
+100,,,How will you ensure data accuracy and integrity?
+,,,
+101,User Feedback,Focuses on how user feedback will be collected and acted upon.,"How will user feedback be collected (surveys, interviews)?"
+102,,,How will you prioritize and act on feedback?
+103,,,Do you need a feedback loop for continuous improvement?
+104,,,What tools will be used for feedback collection?
+105,,,How will you communicate changes based on feedback?
+106,,,How will you encourage user retention and engagement?
+107,,,What gamification or loyalty strategies will be used?
+108,,,Do you need user engagement analytics?
+,,,
+109,Data,Focuses how users data would be stored and the kind of data that would be stored,"What kind of data are you planning to store (User Information, Images, Document)?"
+110,,,Will you need to organize and search through a lot of information?
+111,,,What kind of database do you prefer SQL or Non SQL ?
+112,,,Do different users need different levels of access?
+113,,,Are you storing any confidential information ?
+114,,,"Do you need to store user-generated content (e.g., photos, videos, posts)?"
+115,,,How often will your data change?
+,,,
+116,Accessibility,"Ensures that the solution is usable by individuals with disabilities, meeting relevant standards and guidelines.","What accessibility standards (WCAG, ADA) should be followed?"
+117,,,How will you accommodate users with disabilities?
+118,,,What assistive technologies should be supported?
+119,,,Will your solution be used by people with slow internet or older devices?
+,,,
+120,Legal Considerations,Addresses legal aspects of the solution.,"Does your project need to meet legal requirements (e.g., GDPR, HIPAA, PCI-DSS, NDPR)?"
+121,,,Are there specific legal agreements or contracts required?
+122,,,How will intellectual property rights be managed?
+123,,,What terms of service and privacy policies need to be defined?
+,,,
+124,Ethical & Responsible AI ,Ensures fair and responsible AI usage.,"Do you plan to use AI/ML, and how will you ensure ethical use?"
+125,,,What bias detection and mitigation strategies will you implement?
+126,,,How will AI-driven decisions be explained to users?
+,,,
+127,Duration,Ensures a clear definition of the product development lifecycle,How many months do you plan on using to build your MVP?
+128,,,What is the total duration for launching the product into market?
