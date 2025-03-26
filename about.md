@@ -111,8 +111,8 @@
 ### 1. Clone the Repo
 
 ```bash
-git clone https://github.com/your-org/tech-stack-agent.git
-cd tech-stack-agent
+git clone https://github.com/Behordeun/mastercard_solution_tech_stack_agent.git
+cd mastercard_solution_tech_stack_agent
 ```
 
 ### 2. Install Dependencies
@@ -123,14 +123,47 @@ poetry install
 
 ### 3. Set Up Environment Variables
 
-**Create a .env file:**
+**Create a .env file:** copy the content of the .example.env file and replace the placeholder values with actual values.
 
-```env
-POSTGRES_DB_URL=postgresql://user:password@localhost:5432/techstack_db
-OPENAI_API_KEY=sk-xxx
+```bash
+cp .env.example .env
+```
+
+### 4. Set up the poetry environment
+
+- Install poetry:
+
+```bash
+python3.12 -m install poetry
+```
+
+- Specify the desired python version (in our case we're using python3.12)
+
+```bash
+poetry env use python3.12
+```
+
+- Install the required libraries:
+
+```bash
+poetry install
 ```
 
 ### 4. Set Up the Database
+
+- Initialize the database setup
+
+```bash
+alembic init migrations
+```
+
+- Commit the database changes
+
+```bash
+alembic revision --autogenerate -m "First Commit"
+```
+
+- Enforce the database actions
 
 ```bash
 alembic upgrade head
