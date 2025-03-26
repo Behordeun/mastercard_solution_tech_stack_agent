@@ -25,12 +25,12 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # === CONFIG ===
-PROMPT_PATH = "src/services/techstack_agent_module/prompts/instruction.yaml"
+PROMPT_PATH = "src/services/mastercard_solution_tech_stack_agent_module/prompts/instruction.yaml"
 CSV_QUESTIONS_PATH = (
-    "src/services/techstack_agent_module/data/Pillars and Key Questions-Final.csv"
+    "src/services/mastercard_solution_tech_stack_agent_module/data/Pillars and Key Questions-Final.csv"
 )
-VECTORSTORE_PATH = "src/services/techstack_agent_module/kb_vectorstore"
-DOMAIN_KNOWLEDGE_PATH = "src/services/techstack_agent_module/data/domain_knowledge.json"
+VECTORSTORE_PATH = "src/services/mastercard_solution_tech_stack_agent_module/kb_vectorstore"
+DOMAIN_KNOWLEDGE_PATH = "src/services/mastercard_solution_tech_stack_agent_module/data/domain_knowledge.json"
 
 
 # === STATE ===
