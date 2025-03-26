@@ -161,12 +161,12 @@ async def view_logs(log_type: str):
 
     try:
         if not os.path.exists(log_file):
-            raise HTTPException(status_code=404, detail=f"Log file not found.")
+            raise HTTPException(status_code=404, detail="Log file not found.")
         with open(log_file, "r", encoding="utf-8") as f:
             return f.read() or "Log file is empty."
     except Exception as e:
         logger.error(f"Error reading log '{log_type}': {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Error reading log file.")
+        raise HTTPException(status_code=500, detail="Error reading log file.") from e
 
 
 # === Main chat router ===
