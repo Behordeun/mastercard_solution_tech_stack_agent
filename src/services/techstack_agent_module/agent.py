@@ -264,13 +264,15 @@ class Assistant:
 
             # Initial interaction
             ai_messages = [m for m in state["messages"] if isinstance(m, AIMessage)]
-            user_messages = [m for m in state["messages"] if isinstance(m, HumanMessage)]
+            user_messages = [
+                m for m in state["messages"] if isinstance(m, HumanMessage)
+            ]
 
             if len(ai_messages) == 0 and len(user_messages) == 1:
                 return self._push(
                     state,
                     "👋 Hello! I'm your AI Solution Architect. I specialize in designing optimal technology stacks.\n\n"
-                    "Let's start with your project goal..."
+                    "Let's start with your project goal...",
                 )
 
             # Store user response
