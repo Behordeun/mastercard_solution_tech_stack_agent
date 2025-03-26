@@ -25,7 +25,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # === CONFIG ===
-PROMPT_PATH = "src/services/techstack_agent_module/prompts/instruction.yaml"
+PROMPT_PATH = "src/services/techstack_agent_module/prompts/instruction-4.yaml"
 CSV_QUESTIONS_PATH = (
     "src/services/techstack_agent_module/data/Pillars and Key Questions-Final.csv"
 )
