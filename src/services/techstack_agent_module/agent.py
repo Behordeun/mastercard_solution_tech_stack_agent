@@ -190,6 +190,7 @@ class Assistant:
         self.questions = questions
         self.stack_generator = components["stack_generator"]
         self.domain_manager = domain_knowledge_manager
+        self.conversation_stage = "greeting"  # Tracks conversation progress
 
     def _initialize_state(self, state: State) -> State:
         defaults = {
@@ -262,99 +263,82 @@ class Assistant:
                 (m for m in reversed(messages) if isinstance(m, HumanMessage)), None
             )
 
-            # Initial interaction
-            ai_messages = [m for m in state["messages"] if isinstance(m, AIMessage)]
-            user_messages = [
-                m for m in state["messages"] if isinstance(m, HumanMessage)
-            ]
+            # Track conversation progress
+            if last_user_message:
+                state["last_user_response"] = last_user_message.content
+                user_msg = last_user_message.content.lower()
 
-            if len(ai_messages) == 0 and len(user_messages) == 1:
+                # Update conversation stage based on user input
+                if self.conversation_stage == "greeting":
+                    if any(greet in user_msg for greet in ["hi", "hello", "hey"]):
+                        self.conversation_stage = "project_description"
+                        return self._push(
+                            state,
+                            "Great! Let's begin with your project:\n\n"
+                            "🧭 What are you building? (e.g., 'A patient management system', 'An educational platform')"
+                        )
+                    else:
+                        # Treat as project description if not a greeting
+                        self.conversation_stage = "project_description"
+                        state["program_context"]["initiative"] = state["last_user_response"]
+                        return self._ask_for_domain(state)
+
+                elif self.conversation_stage == "project_description":
+                    if not state["program_context"].get("initiative"):
+                        state["program_context"]["initiative"] = state["last_user_response"]
+                        return self._ask_for_domain(state)
+
+                elif self.conversation_stage == "domain":
+                    if not state["program_context"].get("domain"):
+                        state["program_context"]["domain"] = state["last_user_response"]
+                        self.conversation_stage = "pillar_questions"
+                        return self._start_pillar_questions(state)
+
+            # Initial greeting
+            if self.conversation_stage == "greeting":
+                self.conversation_stage = "awaiting_greeting_response"
                 return self._push(
                     state,
                     "👋 Hello! I'm your AI Solution Architect. I specialize in designing optimal technology stacks.\n\n"
-                    "Let's start with your project goal...",
+                    "Let's start with your project goal..."
                 )
 
-            # Store user response
-            if last_user_message:
-                state["last_user_response"] = last_user_message.content
-
-            # Conversation flow
+            # Handle empty state transitions
             if not state["program_context"].get("initiative"):
-                if not state.get("last_user_response"):
-                    return self._push(
-                        state,
-                        "🧭 What are you building? Describe your project in 1-2 sentences.\n"
-                        "Examples:\n- 'A patient management system for clinics'\n"
-                        "- 'An educational platform for K-12 students'",
-                    )
-                state["program_context"]["initiative"] = state["last_user_response"]
-                common_domains = self.domain_manager.knowledge["common_domains"]
                 return self._push(
                     state,
-                    "🌍 What industry/domain does this serve?\n"
-                    f"Common domains: {', '.join(common_domains)}\n"
-                    "Or specify your own:",
+                    "🧭 What are you building? Describe your project in 1-2 sentences.\n"
+                    "Examples:\n- 'A patient management system for clinics'\n"
+                    "- 'An educational platform for K-12 students'"
                 )
 
             if not state["program_context"].get("domain"):
-                if not state.get("last_user_response"):
-                    return self._push(
-                        state, "🌍 Please specify the domain for your solution"
-                    )
-                response, _ = await self.handle_domain_input(state)
-                return response
+                return self._ask_for_domain(state)
 
-            # Continue with pillar questions if domain is set
-            if not state["current_pillar"]:
-                state["current_pillar"] = self._get_next_pillar(state)
-                if state["current_pillar"]:
-                    return self._push(
-                        state,
-                        f"📋 Now let's discuss {state['current_pillar'].replace('_', ' ').title()} requirements...",
-                    )
-
-            # Handle pillar questions
-            pillar = state["current_pillar"]
-            if pillar:
-                for q in self.questions.get(pillar, []):
-                    if q not in state["asked_questions"]:
-                        if state.get("last_user_response"):
-                            if pillar not in state["pillar_responses"]:
-                                state["pillar_responses"][pillar] = {}
-                            state["pillar_responses"][pillar][
-                                state["asked_questions"][-1]
-                            ] = state["last_user_response"]
-
-                        state["asked_questions"].append(q)
-                        return self._push(state, q)
-
-                # Move to next pillar
-                if pillar in state["pillar_responses"] and state["last_user_response"]:
-                    state["pillar_responses"][pillar][state["asked_questions"][-1]] = (
-                        state["last_user_response"]
-                    )
-
-                state["completed_pillars"].append(pillar)
-                state["current_pillar"] = self._get_next_pillar(state)
-                if state["current_pillar"]:
-                    return self._push(
-                        state,
-                        f"📋 Now discussing {state['current_pillar'].replace('_', ' ').title()} requirements...",
-                    )
-
-            # Generate and confirm summary
-            if not state["summary_confirmed"]:
-                return self._generate_summary(state)
-
-            # Generate tech stack
-            return await self._recommend_stack(state)
+            # Continue with pillar questions
+            return await self._continue_conversation(state)
 
         except Exception as e:
             logger.error(f"Error in run method: {e}")
+            return self._push(state, "⚠️ Sorry, I encountered an error. Let me try again...")
+
+    def _ask_for_domain(self, state: State) -> Dict:
+        common_domains = self.domain_manager.knowledge["common_domains"]
+        return self._push(
+            state,
+            "🌍 What industry/domain does this serve?\n"
+            f"Common domains: {', '.join(common_domains)}\n"
+            "Or specify your own:"
+        )
+
+    def _start_pillar_questions(self, state: State) -> Dict:
+        state["current_pillar"] = self._get_next_pillar(state)
+        if state["current_pillar"]:
             return self._push(
-                state, "⚠️ Sorry, I encountered an error. Let me try again..."
+                state,
+                f"📋 Now let's discuss {state['current_pillar'].replace('_', ' ').title()} requirements..."
             )
+        return self._generate_summary(state)
 
     def _get_next_pillar(self, state: State) -> Optional[str]:
         for pillar in self.questions.keys():
@@ -419,7 +403,7 @@ async def assistant_node(state: State, config: RunnableConfig) -> Dict:
 
 def techstack_agent_graph():
     builder = StateGraph(State)
-    builder.add_node("assistant", assistant_node)  # this is now async
+    builder.add_node("assistant", assistant_node)
     builder.add_node("tools", ToolNode(components["tools_to_use"]))
     builder.add_edge(START, "assistant")
     builder.add_conditional_edges("assistant", tools_condition)
