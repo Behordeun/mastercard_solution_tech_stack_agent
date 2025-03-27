@@ -6,18 +6,19 @@ from typing import Generator, Optional
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
+from src.config.db_setup import engine, SessionLocal
 from src.database.schemas import AgentSession, ConversationHistory
 
 logger = logging.getLogger(__name__)
 
-# ✅ Database connection via env
-DATABASE_URL = os.getenv("POSTGRES_DB_URL")
-if not DATABASE_URL:
-    raise ValueError("🚨 ERROR: POSTGRES_DB_URL is not set. Check your .env file.")
+# # ✅ Database connection via env
+# DATABASE_URL = os.getenv("POSTGRES_DB_URL")
+# if not DATABASE_URL:
+#     raise ValueError("🚨 ERROR: POSTGRES_DB_URL is not set. Check your .env file.")
 
-# ✅ SQLAlchemy engine & session
-engine = create_engine(DATABASE_URL, echo=True)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# # ✅ SQLAlchemy engine & session
+# engine = create_engine(DATABASE_URL, echo=True)
+# SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 DatabaseSession = SessionLocal
 
 

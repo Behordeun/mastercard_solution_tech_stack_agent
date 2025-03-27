@@ -56,4 +56,4 @@ class AgentSession(Base):
 
 
 # ✅ Only run in dev, not in production!
-Base.metadata.create_all(bind=engine)
+# Base.metadata.create_all(bind=engine)

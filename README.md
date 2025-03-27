@@ -128,7 +128,7 @@ poetry install
 **Create a .env file:** copy the content of the .example.env file and replace the placeholder values with actual values.
 
 ```bash
-cp .env.example .env
+cp .example.env .env
 ```
 
 ### 4. Set up the poetry environment
