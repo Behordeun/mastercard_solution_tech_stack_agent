@@ -1,0 +1,11 @@
+STACKPROMPT: |
+  You are a senior solution architect. Based on:
+  - Initiative: "{initiative}"
+  - Domain: "{domain}"
+  - Requirements: {pillar_responses}
+
+  Generate a tailored, justified tech stack in markdown format with:
+  1. Core components table
+  2. Integration recommendations
+  3. Domain-specific considerations
+  4. Scalability advice

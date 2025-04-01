@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Annotated, Union
+from typing import Annotated, Union, List
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
@@ -11,8 +11,9 @@ from src.api.data_model import Chat_Message
 from src.api.logs_router import router as logs_router
 from src.config.db_setup import SessionLocal
 from src.database.schemas import AIMessageResponse
+from src.database.pd_db import get_conversation_history, insert_conversation
 from src.error_trace.errorlogger import system_logger  # ✅ Custom logger
-from src.services.manager import chat_event
+from src.services.manager import chat_event, create_chat
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +57,7 @@ async def chat(message: Chat_Message, db: Annotated[Session, Depends(get_db)]):
 
     try:
         response = await chat_event(db, message)
-        logger.info(f"Chat response before serialization: {response}")
+        # logger.info(f"Chat response before serialization: {response}")
 
         ai_message = _extract_ai_message(response)
         response_id = str(response.get("id") or getattr(ai_message, "id", ""))
@@ -78,3 +79,14 @@ async def chat(message: Chat_Message, db: Annotated[Session, Depends(get_db)]):
             },
             status_code=500,
         )
+
+@chat_router.get("/chat-history", response_model_exclude_unset=True)
+async def get_chat_history(room_id, db: Annotated[Session, Depends(get_db)]):
+    conversation_history = get_conversation_history(db, room_id=room_id)
+
+    if not conversation_history:
+        await create_chat(db=db, room_id=room_id)
+        conversation_history = get_conversation_history(db, room_id=room_id)
+    
+    print(conversation_history)
+    return conversation_history

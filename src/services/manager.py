@@ -7,10 +7,10 @@ from langchain_core.messages import AIMessage
 from langgraph.checkpoint.memory import MemorySaver
 
 from src.api.data_model import Chat_Message, Chat_Response
-from src.database.pd_db import DatabaseSession, get_conversation_history
+from src.database.pd_db import DatabaseSession, get_conversation_history, insert_conversation
 from src.database.schemas import ChatLog
 from src.error_trace.errorlogger import system_logger
-from src.services.mastercard_solution_tech_stack_agent_module.agent import techstack_agent_graph
+from src.services.mastercard_solution_tech_stack_agent_module.agent import agent, prompt_template, ConversationStage
 
 logger = logging.getLogger(__name__)
 
@@ -113,52 +113,35 @@ class ChatProcessor:
         self, message_dict: Dict[str, Any]
     ) -> Dict[str, Any]:
         try:
-            conversation_history = await safe_db_operation(
+            messages = await safe_db_operation(
                 get_conversation_history, self.db, message_dict.get("roomId")
             )
-            system_logger.info(f"Conversation history: {conversation_history}")
+            system_logger.info(f"Conversation history: {messages}")
+            print(f"Conversation history: {messages}")
+            
+            # messages.append({"role": "user", "content": message_dict.get("message")})
+            # state = {
+            #     "messages": messages,
+            #     "user_interaction_count": len(
+            #         [m for m in messages if m["role"] == "user"]
+            #     ),
+            #     "last_message": None,
+            #     "last_user_response": None,
+            #     "program_context": {},
+            #     "pillar_responses": {},
+            #     "asked_questions": [],
+            #     "current_pillar": None,
+            #     "completed_pillars": [],
+            #     "summary_confirmed": False,
+            #     "recommended_stack": None,
+            #     "tech_stack_ready": False,
+            # }
 
-            messages = []
-            if conversation_history:
-                for line in conversation_history.strip().split("\n"):
-                    line = line.strip()
-                    if "User:" in line:
-                        messages.append(
-                            {
-                                "role": "user",
-                                "content": line.replace("User:", "").strip(),
-                            }
-                        )
-                    elif "TSA145:" in line:
-                        messages.append(
-                            {
-                                "role": "ai",
-                                "content": line.replace("TSA145:", "").strip(),
-                            }
-                        )
+            # graph = techstack_agent_graph()
+            
+            last_message = {"messages": [{"role": "user", "content": message_dict.get("message")}]}
 
-            messages.append({"role": "user", "content": message_dict.get("message")})
-
-            state = {
-                "messages": messages,
-                "user_interaction_count": len(
-                    [m for m in messages if m["role"] == "user"]
-                ),
-                "last_message": None,
-                "last_user_response": None,
-                "program_context": {},
-                "pillar_responses": {},
-                "asked_questions": [],
-                "current_pillar": None,
-                "completed_pillars": [],
-                "summary_confirmed": False,
-                "recommended_stack": None,
-                "tech_stack_ready": False,
-            }
-
-            graph = techstack_agent_graph()
-            MemorySaver()
-
+            print("Last Message:", last_message)
             config = {
                 "configurable": {
                     "conversation_id": message_dict.get("roomId"),
@@ -167,7 +150,10 @@ class ChatProcessor:
             }
 
             # ✅ Fix: Use async invocation
-            output = await graph.ainvoke(state, config)
+            async for event in agent.astream(last_message, config):
+                for value in event.values():
+                    output = value
+                    print(f"Assistant {value['messages'][-1]}")
 
             if not isinstance(output, dict):
                 raise ValueError("Graph did not return a valid dictionary.")
@@ -190,6 +176,7 @@ class ChatProcessor:
             )
 
         except Exception as e:
+            print(e)
             system_logger.error(e, exc_info=True)
             return await self.log_and_respond(
                 message_dict,
@@ -208,8 +195,38 @@ async def chat_event(db: Any, message: Chat_Message) -> Dict[str, Any]:
 
         chat_processor = ChatProcessor(db)
         response = await chat_processor.handle_graph_integration(message.model_dump())
-        logger.info(f"TSA145 Response: {response['message']}")
+        
+        print(f"TSA145 Response: {response['message']}")
+
+        insert_conversation(db, ai_message=response["message"],
+                            room_id=message.roomId, user_message=message.message)
+        # logger.info(f"TSA145 Response: {response['message']}")
         return response
+
+    except Exception as e:
+        system_logger.error(e, exc_info=True)
+        return {
+            "message": "AI processing error. Please try again later.",
+            "sender": "AI",
+        }
+
+
+async def create_chat(db: Any, room_id) -> Dict[str, Any]:
+    logger.info(f"Create Chat")
+
+    try:        
+        # print(prompt_template.get("OPENING_TEXT", ""))
+        insert_conversation(db, ai_message=prompt_template.get("OPENING_TEXT", ""),
+                            room_id=room_id, user_message="")
+        
+        config = {
+            "configurable": {
+                "conversation_id": room_id,
+                "thread_id": room_id,
+            }
+        }
+        agent.update_state(config, {"messages": AIMessage(content = prompt_template.get("OPENING_TEXT", "")),
+                                    "conversation_stage": ConversationStage.greeting})
 
     except Exception as e:
         system_logger.error(e, exc_info=True)

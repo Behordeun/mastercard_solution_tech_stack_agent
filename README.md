@@ -156,19 +156,19 @@ poetry install
 - Initialize the database setup
 
 ```bash
-alembic init migrations
+poetry run alembic init migrations
 ```
 
 - Commit the database changes
 
 ```bash
-alembic revision --autogenerate -m "First Commit"
+poetry run alembic revision --autogenerate -m "First Commit"
 ```
 
 - Enforce the database actions
 
 ```bash
-alembic upgrade head
+poetry run alembic upgrade head
 ```
 
 ### 5. Build the Vectorstore (only once)

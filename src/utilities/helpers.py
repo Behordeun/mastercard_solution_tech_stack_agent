@@ -69,18 +69,18 @@ def load_pillar_questions(csv_path: str) -> dict:
     Loads pillar-based questions from a CSV and returns a dict: {pillar: [questions]}
     """
     df = pd.read_csv(csv_path)
+    current_pillar = ""
     pillar_questions = {}
     for _, row in df.iterrows():
         pillar = row.get("Pillar")
-        question = row.get("Key Question")
+        question = row.get("Key Questions")
 
-        if pd.isna(pillar) or pd.isna(question):
+        if pd.isna(question):
             continue  # Skip rows with missing data
 
-        pillar = str(pillar).strip().lower()
-        question = str(question).strip()
+        if pillar != "" and (not pd.isna(pillar)):
+            current_pillar = pillar.strip()
 
-        if pillar and question:
-            pillar_questions.setdefault(pillar, []).append(question)
-
+        if question:
+            pillar_questions.setdefault(current_pillar, []).append(question.strip())
     return pillar_questions

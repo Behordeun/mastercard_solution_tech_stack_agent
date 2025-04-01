@@ -1,0 +1,16 @@
+﻿,Pillar,Description,Key Questions
+1,Software,"Focuses on how the solution will be built, including frontend, backend, APIs, and cloud infrastructure.","How do you envision users interacting with your platform? (Web app, mobile app, or both?)"
+2,,,"Do you require integration with third-party services, such as payment processors or external APIs?"
+3,,,What level of scalability do you anticipate for your platform?
+4,,,"Would you prefer a low-code/no-code approach, or do you need a custom-built system?"
+5,,,About how many people do you think will use this product?
+6,,,What Programming Language would you like to use.
+7,,,Do you require offline functionality for users who may not always have internet access?
+8,,,Do you need native mobile apps or progressive web apps?
+9,,,"What mobile platforms (iOS, Android) will be prioritized?"
+,,,
+10,Security,Addresses the security measures needed to protect user data and system integrity.,What level of security do you require for user data? Is encryption necessary?
+11,,,How will you handle user authentication and authorization?
+12,,,Do you need to implement a firewall or intrusion detection system?
+13,,,What measures will be taken to ensure data integrity and prevent unauthorized access?
+14,,,How will you handle security updates and vulnerability management?

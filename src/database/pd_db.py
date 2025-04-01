@@ -42,6 +42,8 @@ def insert_conversation(
         )
         db.add(conversation)
         db.commit()
+
+        print("Conversation Added")
     except Exception as e:
         db.rollback()
         logger.error(f"Error inserting chat message: {str(e)}")
@@ -71,13 +73,19 @@ def get_conversation_history(db: Session, room_id: str, k: int = 48) -> str:
         conversation_parts = []
         for msg in unique_messages:
             if msg.user_message:
-                user_text = msg.user_message.replace("\n", " ")
-                conversation_parts.append(f"User: {user_text}")
+                user_text = msg.user_message
+                conversation_parts.append({
+                    "role": "user",
+                    "content": user_text,
+                })
             if msg.ai_message:
-                ai_text = msg.ai_message.replace("\n", " ")
-                conversation_parts.append(f"TSA145: {ai_text}")
+                ai_text = msg.ai_message
+                conversation_parts.append({
+                    "role": "ai",
+                    "content": ai_text,
+                })
 
-        return "\n".join(conversation_parts)
+        return conversation_parts
 
     except Exception as e:
         logger.error(f"Error retrieving chat history: {str(e)}")

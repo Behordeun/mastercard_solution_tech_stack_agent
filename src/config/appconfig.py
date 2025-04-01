@@ -20,6 +20,7 @@ class EnvConfig:
         self.user = os.getenv("DB_USER")
         self.password = os.getenv("DB_PASSWORD")
         self.openai_api_key = os.getenv("OPENAI_API_KEY")
+        self.groq_api_key = os.getenv("GROQ_API_KEY")
 
     def __repr__(self):
         return (
