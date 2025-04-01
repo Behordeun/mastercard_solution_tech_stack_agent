@@ -10,6 +10,7 @@ class EnvConfig:
     """Class to hold environment configuration variables."""
 
     def __init__(self):
+        self.llm = os.getenv("LLM")
         self.env = os.getenv("PYTHON_ENV")
         self.app_port = os.getenv("PORT")
         self.db_port = os.getenv("DB_PORT")
