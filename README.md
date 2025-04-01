@@ -1,6 +1,6 @@
 # 🧠 TSA145: Agentic AI Solution Architect
 
-**TSA145** is an Agentic AI assistant that guides users through designing a context-aware, domain-aligned, and strategically justified tech stack — acting not just as an information provider, but a **trusted advisor**.
+**TSA145** is an Agentic AI assistant that guides users through designing a context-aware, domain-aligned, and strategically justified tech stack, acting not just as an information provider, but a **trusted advisor**.
 
 ---
 
