@@ -11,10 +11,10 @@ from datetime import datetime
 from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings
 from langchain.chains import RetrievalQA
-from src.services.model import agent_model as model
+from src.mastercard_solution_tech_stack_agent.services.model import agent_model as model
 
-from src.config.db_setup import SessionLocal
-from src.config.settings import Settings
+from src.mastercard_solution_tech_stack_agent.config.db_setup import SessionLocal
+from src.mastercard_solution_tech_stack_agent.config.settings import Settings
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

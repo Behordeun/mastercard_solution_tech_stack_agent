@@ -3,8 +3,8 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from src.database.pd_db import DatabaseSession
-from src.database.schemas import ChatLog, ConversationHistory
+from src.mastercard_solution_tech_stack_agent.database.pd_db import DatabaseSession
+from src.mastercard_solution_tech_stack_agent.database.schemas import ChatLog, ConversationHistory
 
 router = APIRouter(prefix="/logs", tags=["Chat Logs"])
 
