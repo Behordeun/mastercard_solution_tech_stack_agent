@@ -178,3 +178,4 @@ migrations/
 logs
 docs/EdoDHISProject.99201026-2f8c-4f1c-b097-b6a369c5254f.serialconsole.txt
 .DS_Store
+.git_backup
