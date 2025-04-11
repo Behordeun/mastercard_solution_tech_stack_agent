@@ -6,11 +6,11 @@ from typing import Any, Callable, Dict, List
 from langchain_core.messages import AIMessage
 from langgraph.checkpoint.memory import MemorySaver
 
-from src.api.data_model import Chat_Message, Chat_Response
-from src.database.pd_db import DatabaseSession, get_conversation_history, insert_conversation
-from src.database.schemas import ChatLog
-from src.error_trace.errorlogger import system_logger
-from src.services.mastercard_solution_tech_stack_agent_module.agent import agent, prompt_template, ConversationStage
+from src.mastercard_solution_tech_stack_agent.api.data_model import Chat_Message, Chat_Response
+from src.mastercard_solution_tech_stack_agent.database.pd_db import DatabaseSession, get_conversation_history, insert_conversation
+from src.mastercard_solution_tech_stack_agent.database.schemas import ChatLog
+from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import system_logger
+from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_stack_agent_module.agent import agent, prompt_template, ConversationStage
 
 logger = logging.getLogger(__name__)
 

@@ -22,15 +22,15 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # === CONFIG ===
-PROMPT_PATH = "src/services/mastercard_solution_tech_stack_agent_module/prompts/instruction.yaml"
-STACK_PROMPT_PATH = "src/services/mastercard_solution_tech_stack_agent_module/prompts/stack_prompt.yaml"
+PROMPT_PATH = "src/mastercard_solution_tech_stack_agent/services/mastercard_solution_tech_stack_agent_module/prompts/instruction.yaml"
+STACK_PROMPT_PATH = "src/mastercard_solution_tech_stack_agent/services/mastercard_solution_tech_stack_agent_module/prompts/stack_prompt.yaml"
 
 # CSV_QUESTIONS_PATH = (
-#     "src/services/mastercard_solution_tech_stack_agent_module/data/Pillars and Key Questions-Final.csv"
+#     "src/mastercard_solution_tech_stack_agent/services/mastercard_solution_tech_stack_agent_module/data/Pillars and Key Questions-Final.csv"
 # )
 
 CSV_QUESTIONS_PATH = (
-    "src\services\mastercard_solution_tech_stack_agent_module\data\Sample Pillars and Key Questions-Final copy.csv"
+    "src/mastercard_solution_tech_stack_agent/services/mastercard_solution_tech_stack_agent_module\data\Sample Pillars and Key Questions-Final copy.csv"
 )
 
 prompt_template = load_yaml_file(Path(PROMPT_PATH))
