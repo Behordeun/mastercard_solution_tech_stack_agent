@@ -6,16 +6,21 @@ from typing import Annotated, Dict, List, Optional, Tuple
 from langchain.prompts import PromptTemplate
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import Runnable, RunnableConfig, RunnableSequence
+from langchain_core.runnables import Runnable, RunnableConfig
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import START, StateGraph
 from langgraph.graph.message import AnyMessage, add_messages
 from langgraph.prebuilt import ToolNode, tools_condition
-from langgraph.checkpoint.memory import MemorySaver
-from typing_extensions import TypedDict
-
-from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_stack_agent_module.toolskit import tools, domain_knowledge_manager
+from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_stack_agent_module.toolskit import (
+    domain_knowledge_manager,
+    tools,
+)
 from src.mastercard_solution_tech_stack_agent.services.model import agent_model as model
-from src.mastercard_solution_tech_stack_agent.utilities.helpers import load_pillar_questions, load_yaml_file
+from src.mastercard_solution_tech_stack_agent.utilities.helpers import (
+    load_pillar_questions,
+    load_yaml_file,
+)
+from typing_extensions import TypedDict
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -29,11 +34,10 @@ STACK_PROMPT_PATH = "src/mastercard_solution_tech_stack_agent/services/mastercar
 #     "src/mastercard_solution_tech_stack_agent/services/mastercard_solution_tech_stack_agent_module/data/Pillars and Key Questions-Final.csv"
 # )
 
-CSV_QUESTIONS_PATH = (
-    "src/mastercard_solution_tech_stack_agent/services/mastercard_solution_tech_stack_agent_module\data\Sample Pillars and Key Questions-Final copy.csv"
-)
+CSV_QUESTIONS_PATH = "src/mastercard_solution_tech_stack_agent/services/mastercard_solution_tech_stack_agent_module\data\Sample Pillars and Key Questions-Final copy.csv"
 
 prompt_template = load_yaml_file(Path(PROMPT_PATH))
+
 
 class ConversationStage(Enum):
     greeting = "greeting"
@@ -44,6 +48,7 @@ class ConversationStage(Enum):
     specify_goal = "specify goal"
     generate_summary = "generate summary"
     recommend_stack = "recommend stack"
+
 
 # === STATE ===
 class State(TypedDict):
@@ -73,7 +78,7 @@ def _initialize_components():
 
         stack_prompt = PromptTemplate.from_template(
             load_yaml_file(Path(STACK_PROMPT_PATH)).get("STACKPROMPT", "")
-        )   
+        )
 
         stack_generator = stack_prompt | model
 
@@ -183,39 +188,40 @@ class Assistant:
                 state["last_user_response"] = last_user_message.content
                 user_msg = last_user_message.content.lower()
                 # print("Last User Message: ", user_msg)
-                
+
                 if any(greet in user_msg for greet in ["hi", "hello", "hey"]):
                     state["conversation_stage"] = ConversationStage.greeting
                     return self._push(
                         state,
                         "👋 Hello! I'm your AI Solution Architect. I specialize in designing optimal technology stacks.\n\n"
-                        "Let's start with your project goal..."
+                        "Let's start with your project goal...",
                     )
-                
+
                 # Update conversation stage based on user input
                 elif state["conversation_stage"] == ConversationStage.greeting:
                     state["conversation_stage"] = ConversationStage.specify_goal
-                    
+
                     return self._push(
                         state,
                         "Great! Let's begin with your project:\n\n"
-                        "🧭 What are you building? (e.g., 'A patient management system', 'An educational platform')"
+                        "🧭 What are you building? (e.g., 'A patient management system', 'An educational platform')",
                     )
 
                 elif state["conversation_stage"] == ConversationStage.specify_goal:
                     state["conversation_stage"] = ConversationStage.project_description
 
                     state["program_context"]["initiative"] = state["last_user_response"]
-                    return self._push(
-                        state,
-                        "Briefly describe what you are building"
-                    )
+                    return self._push(state, "Briefly describe what you are building")
 
-                elif state["conversation_stage"] == ConversationStage.project_description:
+                elif (
+                    state["conversation_stage"] == ConversationStage.project_description
+                ):
                     state["conversation_stage"] = ConversationStage.domain
 
                     if not state["program_context"].get("initiative"):
-                        state["program_context"]["initiative"] = state["last_user_response"]
+                        state["program_context"]["initiative"] = state[
+                            "last_user_response"
+                        ]
                         return self._ask_for_domain(state)
 
                 elif state["conversation_stage"] == ConversationStage.domain:
@@ -227,18 +233,20 @@ class Assistant:
                 elif state["conversation_stage"] == ConversationStage.pillar_questions:
                     state = self._save_pillar_response(state)
                     return self._next_pillar_question(state)
-                
-                elif state['conversation_stage'] == ConversationStage.generate_summary:
+
+                elif state["conversation_stage"] == ConversationStage.generate_summary:
                     state["conversation_stage"] == ConversationStage.recommend_stack
                     return await self._recommend_stack(state)
-                    
+
             # Initial greeting
             if state["conversation_stage"] == ConversationStage.greeting:
-                state["conversation_stage"] = ConversationStage.awaiting_greeting_response
+                state["conversation_stage"] = (
+                    ConversationStage.awaiting_greeting_response
+                )
                 return self._push(
                     state,
                     "👋 Hello! I'm your AI Solution Architect. I specialize in designing optimal technology stacks.\n\n"
-                    "Let's start with your project goal..."
+                    "Let's start with your project goal...",
                 )
 
             # Handle empty state transitions
@@ -247,7 +255,7 @@ class Assistant:
                     state,
                     "🧭 What are you building? Describe your project in 1-2 sentences.\n"
                     "Examples:\n- 'A patient management system for clinics'\n"
-                    "- 'An educational platform for K-12 students'"
+                    "- 'An educational platform for K-12 students'",
                 )
 
             if not state["program_context"].get("domain"):
@@ -258,7 +266,9 @@ class Assistant:
 
         except Exception as e:
             logger.error(f"Error in run method: {e}")
-            return self._push(state, "⚠️ Sorry, I encountered an error. Let me try again...")
+            return self._push(
+                state, "⚠️ Sorry, I encountered an error. Let me try again..."
+            )
 
     def _ask_for_domain(self, state: State) -> Dict:
         common_domains = self.domain_manager.knowledge["common_domains"]
@@ -266,7 +276,7 @@ class Assistant:
             state,
             "🌍 What industry/domain does this serve?\n"
             f"Common domains: {', '.join(common_domains)}\n"
-            "Or specify your own:"
+            "Or specify your own:",
         )
 
     def _get_pillar_questions(self, state: State) -> Dict:
@@ -276,7 +286,7 @@ class Assistant:
         print(pillar_responses)
         for question in pillar_questions:
             if question not in pillar_responses.keys():
-                return state, question   
+                return state, question
 
         # Check pillar is not in completed pillars
         if cur_pillar not in state["completed_pillars"]:
@@ -294,10 +304,10 @@ class Assistant:
 
             return self._push(
                 state,
-                f"📋 Now let's discuss {state['current_pillar'].replace('_', ' ').title()} requirements... \n {question}"
+                f"📋 Now let's discuss {state['current_pillar'].replace('_', ' ').title()} requirements... \n {question}",
             )
         return self._generate_summary(state)
-    
+
     def _next_pillar_question(self, state: State) -> Dict:
         print(state["pillar_responses"])
         if state["current_pillar"]:
@@ -307,24 +317,20 @@ class Assistant:
             if question == None:
                 return self._start_pillar_questions(state)
 
-            return self._push(
-                state,
-                f"{question}"
-            )
+            return self._push(state, f"{question}")
         return self._generate_summary(state)
-    
+
     def _save_pillar_response(self, state: State) -> Dict:
         question = self._get_pillar_questions(state)[1]
         cur_pillar = state["current_pillar"]
         # print(question)
         if cur_pillar:
-            pillar_repsonses = state['pillar_responses'].get(cur_pillar, {})
-            pillar_repsonses[question] = state['last_user_response']
+            pillar_repsonses = state["pillar_responses"].get(cur_pillar, {})
+            pillar_repsonses[question] = state["last_user_response"]
             state["pillar_responses"][cur_pillar] = pillar_repsonses
             return state
         else:
             raise "Error"
-        
 
     def _get_next_pillar(self, state: State) -> Optional[str]:
         for pillar in self.questions.keys():
@@ -380,6 +386,7 @@ class Assistant:
     def _continue_converation(self, state: State) -> Dict:
         return {"messages": [self.runnable.invoke(state["messages"])]}
 
+
 # === Graph Setup ===
 assistant = Assistant(
     runnable=components["assistant_runnable"], questions=components["pillar_questions"]
@@ -400,6 +407,7 @@ def techstack_agent_graph(memory):
     builder.add_conditional_edges("assistant", tools_condition)
     builder.add_edge("tools", "assistant")
     return builder.compile(memory)
+
 
 memory = MemorySaver()
 

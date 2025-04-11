@@ -9,15 +9,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from starlette.exceptions import HTTPException as StarletteHTTPException
-from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
-
 from src.api.route import chat_router
 from src.config import settings
 from src.config.appconfig import env_config
 from src.config.settings import Settings
 from src.error_trace.errorlogger import system_logger
 from src.utilities.Printer import printer
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 
 # === Log directory setup ===
 LOG_DIR = "src/logs"

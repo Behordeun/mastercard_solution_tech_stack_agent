@@ -1,6 +1,5 @@
-from langchain_openai import ChatOpenAI
 from langchain_groq import ChatGroq
-
+from langchain_openai import ChatOpenAI
 from src.mastercard_solution_tech_stack_agent.config.appconfig import env_config
 
 if env_config.llm == "GROQ":
@@ -10,8 +9,8 @@ if env_config.llm == "GROQ":
         max_tokens=None,
         timeout=None,
         max_retries=2,
-        api_key=env_config.groq_api_key
-    )   
+        api_key=env_config.groq_api_key,
+    )
 else:
     agent_model = ChatOpenAI(
         model="gpt-4o-mini",

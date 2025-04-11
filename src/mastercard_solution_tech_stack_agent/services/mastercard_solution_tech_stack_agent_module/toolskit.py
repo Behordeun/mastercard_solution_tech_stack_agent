@@ -1,20 +1,17 @@
 # libraries
 import json
 import logging
-from typing import Annotated, Dict, List, Optional, Tuple
-
-from langchain_core.tools import tool
-from langchain.tools import Tool
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+from typing import Dict, List
 
+from langchain.chains import RetrievalQA
+from langchain.tools import Tool
 from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings
-from langchain.chains import RetrievalQA
-from src.mastercard_solution_tech_stack_agent.services.model import agent_model as model
-
 from src.mastercard_solution_tech_stack_agent.config.db_setup import SessionLocal
 from src.mastercard_solution_tech_stack_agent.config.settings import Settings
+from src.mastercard_solution_tech_stack_agent.services.model import agent_model as model
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -29,6 +26,7 @@ VECTORSTORE_PATH = "src/mastercard_solution_tech_stack_agent/services/mastercard
 # @tool
 # def null(data: Annotated[str, ""]) -> str:
 #     pass
+
 
 # === DOMAIN KNOWLEDGE MANAGEMENT ===
 class DomainKnowledgeManager:
@@ -102,7 +100,6 @@ class DomainKnowledgeManager:
 
 # === COMPONENT INITIALIZATION ===
 domain_knowledge_manager = DomainKnowledgeManager(DOMAIN_KNOWLEDGE_PATH)
-
 
 
 vectorstore = FAISS.load_local(

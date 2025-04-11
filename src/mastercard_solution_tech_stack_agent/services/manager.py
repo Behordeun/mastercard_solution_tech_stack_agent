@@ -4,13 +4,24 @@ from functools import wraps
 from typing import Any, Callable, Dict, List
 
 from langchain_core.messages import AIMessage
-from langgraph.checkpoint.memory import MemorySaver
-
-from src.mastercard_solution_tech_stack_agent.api.data_model import Chat_Message, Chat_Response
-from src.mastercard_solution_tech_stack_agent.database.pd_db import DatabaseSession, get_conversation_history, insert_conversation
+from src.mastercard_solution_tech_stack_agent.api.data_model import (
+    Chat_Message,
+    Chat_Response,
+)
+from src.mastercard_solution_tech_stack_agent.database.pd_db import (
+    DatabaseSession,
+    get_conversation_history,
+    insert_conversation,
+)
 from src.mastercard_solution_tech_stack_agent.database.schemas import ChatLog
-from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import system_logger
-from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_stack_agent_module.agent import agent, prompt_template, ConversationStage
+from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import (
+    system_logger,
+)
+from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_stack_agent_module.agent import (
+    ConversationStage,
+    agent,
+    prompt_template,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -118,7 +129,7 @@ class ChatProcessor:
             )
             system_logger.info(f"Conversation history: {messages}")
             print(f"Conversation history: {messages}")
-            
+
             # messages.append({"role": "user", "content": message_dict.get("message")})
             # state = {
             #     "messages": messages,
@@ -138,8 +149,10 @@ class ChatProcessor:
             # }
 
             # graph = techstack_agent_graph()
-            
-            last_message = {"messages": [{"role": "user", "content": message_dict.get("message")}]}
+
+            last_message = {
+                "messages": [{"role": "user", "content": message_dict.get("message")}]
+            }
 
             print("Last Message:", last_message)
             config = {
@@ -195,11 +208,15 @@ async def chat_event(db: Any, message: Chat_Message) -> Dict[str, Any]:
 
         chat_processor = ChatProcessor(db)
         response = await chat_processor.handle_graph_integration(message.model_dump())
-        
+
         print(f"TSA145 Response: {response['message']}")
 
-        insert_conversation(db, ai_message=response["message"],
-                            room_id=message.roomId, user_message=message.message)
+        insert_conversation(
+            db,
+            ai_message=response["message"],
+            room_id=message.roomId,
+            user_message=message.message,
+        )
         # logger.info(f"TSA145 Response: {response['message']}")
         return response
 
@@ -214,19 +231,28 @@ async def chat_event(db: Any, message: Chat_Message) -> Dict[str, Any]:
 async def create_chat(db: Any, room_id) -> Dict[str, Any]:
     logger.info(f"Create Chat")
 
-    try:        
+    try:
         # print(prompt_template.get("OPENING_TEXT", ""))
-        insert_conversation(db, ai_message=prompt_template.get("OPENING_TEXT", ""),
-                            room_id=room_id, user_message="")
-        
+        insert_conversation(
+            db,
+            ai_message=prompt_template.get("OPENING_TEXT", ""),
+            room_id=room_id,
+            user_message="",
+        )
+
         config = {
             "configurable": {
                 "conversation_id": room_id,
                 "thread_id": room_id,
             }
         }
-        agent.update_state(config, {"messages": AIMessage(content = prompt_template.get("OPENING_TEXT", "")),
-                                    "conversation_stage": ConversationStage.greeting})
+        agent.update_state(
+            config,
+            {
+                "messages": AIMessage(content=prompt_template.get("OPENING_TEXT", "")),
+                "conversation_stage": ConversationStage.greeting,
+            },
+        )
 
     except Exception as e:
         system_logger.error(e, exc_info=True)
