@@ -48,7 +48,7 @@ fastapi-mail = "^1.4.2"
 passlib = "^1.7.4"
 python-jose = {extras = ["cryptography"], version = "^3.4.0"}
 argon2-cffi = "^23.1.0"
-bcrypt = "^4.3.0"
+bcrypt = "4.0.1"
 python-multipart = "^0.0.20"
 authlib = "^1.5.2"
 
