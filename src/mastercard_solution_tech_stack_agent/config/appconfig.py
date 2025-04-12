@@ -26,6 +26,7 @@ class EnvConfig:
         self.email_from = os.getenv("EMAIL_FROM")
         self.email_from_name = os.getenv("EMAIL_FROM_NAME")
         self.admin_email = os.getenv("ADMIN_EMAIL")
+        self.mail_port = os.getenv("MAIL_PORT", 587)
         self.mail_username = os.getenv("MAIL_USERNAME", "apikey")
         self.mail_server = os.getenv("MAIL_SERVER", "smtp.sendgrid.net")
         self.mail_use_tls = os.getenv("MAIL_USE_TLS", True)
@@ -51,6 +52,7 @@ class EnvConfig:
         self.cloudinary_url = os.getenv("CLOUDINARY_URL")
         self.cloudinary_cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME")
         self.token_type = os.getenv("TOKEN_TYPE", "Bearer")
+        self.server_base_address = os.getenv("SERVER_BASE_ADDRESS")
 
     def __repr__(self):
         return (
