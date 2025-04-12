@@ -31,7 +31,7 @@ from src.mastercard_solution_tech_stack_agent.api.schemas import (
 )
 from src.mastercard_solution_tech_stack_agent.config.appconfig import env_config
 from src.mastercard_solution_tech_stack_agent.config.db_setup import get_db
-from src.mastercard_solution_tech_stack_agent.database.schemas import User
+from src.mastercard_solution_tech_stack_agent.database.schemas import User, UserProfile
 from src.mastercard_solution_tech_stack_agent.utilities.email_utils import (
     send_confirmation_email,
     send_password_reset_confirmation_email,
@@ -227,39 +227,39 @@ async def user_registration(user_data: UserCreate, db: Session = Depends(get_db)
         # Generate OTP for email verification
         otp = generate_random_otp()
 
-        # Create a new user in the `users` table
-        new_user = User(
-            username=normalized_username,
-            email=normalized_email,
-            hashed_password=hashed_password,
-            first_name=user_data.first_name,  # Assign first_name
-            last_name=user_data.last_name,  # Assign last_name
-            is_active=True,
-            is_verified=False,
-            is_admin=False,
-            is_super_admin=False,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
-        )
-        db.add(new_user)
-        db.commit()
-        db.refresh(new_user)
+        # Use a transaction to ensure ACID compliance
+        with db.begin():
+            # Create a new user in the `users` table
+            new_user = User(
+                username=normalized_username,
+                email=normalized_email,
+                hashed_password=hashed_password,
+                first_name=user_data.first_name,  # Assign first_name
+                last_name=user_data.last_name,  # Assign last_name
+                is_active=True,
+                is_verified=False,
+                is_admin=False,
+                is_super_admin=False,
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc),
+            )
+            db.add(new_user)
+            db.flush()  # Flush to get the new user's ID
 
-        # Create a corresponding user profile in the `user_profiles` table
-        new_user_profile = UserProfile(
-            user_id=new_user.id,
-            profile_picture=user_data.profile_picture,
-            bio=user_data.bio,
-            linkedin=user_data.linkedin,
-            twitter=user_data.twitter,
-            nationality=user_data.nationality,
-            phone_number=user_data.phone_number,
-            gender=user_data.gender,
-            otp=otp,
-            otp_created_at=datetime.now(timezone.utc),
-        )
-        db.add(new_user_profile)
-        db.commit()
+            # Create a corresponding user profile in the `user_profiles` table
+            new_user_profile = UserProfile(
+                user_id=new_user.id,
+                profile_picture=user_data.profile_picture,
+                bio=user_data.bio,
+                linkedin=user_data.linkedin,
+                twitter=user_data.twitter,
+                nationality=user_data.nationality,
+                phone_number=user_data.phone_number,
+                gender=user_data.gender,
+                otp=otp,
+                otp_created_at=datetime.now(timezone.utc),
+            )
+            db.add(new_user_profile)
 
         # Send verification email
         await send_verification_email(normalized_email, user_data.first_name, otp)
@@ -278,7 +278,6 @@ async def user_registration(user_data: UserCreate, db: Session = Depends(get_db)
         return TokenResponse(access_token=access_token, token_type="bearer")
 
     except SQLAlchemyError as e:
-        db.rollback()
         logger.error(f"Database error during registration: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -907,57 +906,63 @@ async def update_profile(
     try:
         refresh_needed = False  # Track if a token refresh is required
 
-        # ✅ Update fields in the `users` table
-        if user_data.email and user_data.email.lower() != current_user.email:
-            normalized_email = user_data.email.lower()
-            existing_user = (
-                db.query(User).filter(User.email == normalized_email).first()
+        # Use a transaction to ensure ACID compliance
+        with db.begin():
+            # ✅ Update fields in the `users` table
+            if user_data.email and user_data.email.lower() != current_user.email:
+                normalized_email = user_data.email.lower()
+                existing_user = (
+                    db.query(User).filter(User.email == normalized_email).first()
+                )
+                if existing_user and existing_user.id != current_user.id:
+                    raise HTTPException(status_code=400, detail="Email already in use")
+                current_user.email = normalized_email
+                refresh_needed = True  # Email affects authentication
+
+            if user_data.first_name and user_data.first_name != current_user.first_name:
+                current_user.first_name = user_data.first_name
+                refresh_needed = True  # Name change requires new JWT
+
+            if user_data.last_name and user_data.last_name != current_user.last_name:
+                current_user.last_name = user_data.last_name
+                refresh_needed = True  # Name change requires new JWT
+
+            # ✅ Update fields in the `user_profiles` table
+            user_profile = (
+                db.query(UserProfile)
+                .filter(UserProfile.user_id == current_user.id)
+                .first()
             )
-            if existing_user and existing_user.id != current_user.id:
-                raise HTTPException(status_code=400, detail="Email already in use")
-            current_user.email = normalized_email
-            refresh_needed = True  # Email affects authentication
+            if not user_profile:
+                raise HTTPException(status_code=404, detail="User profile not found.")
 
-        if user_data.first_name and user_data.first_name != current_user.first_name:
-            current_user.first_name = user_data.first_name
-            refresh_needed = True  # Name change requires new JWT
+            if user_data.bio:
+                user_profile.bio = user_data.bio
+            if user_data.nationality:
+                user_profile.nationality = user_data.nationality
+            if user_data.phone_number:
+                user_profile.phone_number = user_data.phone_number
+            if user_data.linkedin:
+                user_profile.linkedin = user_data.linkedin
+            if user_data.twitter:
+                user_profile.twitter = user_data.twitter
+            if user_data.gender:
+                user_profile.gender = user_data.gender
 
-        if user_data.last_name and user_data.last_name != current_user.last_name:
-            current_user.last_name = user_data.last_name
-            refresh_needed = True  # Name change requires new JWT
+            # ✅ Handle Profile Picture URL (frontend handles actual image upload)
+            if user_data.profile_picture:
+                user_profile.profile_picture = (
+                    user_data.profile_picture
+                )  # Store the image URL
 
-        # ✅ Update fields in the `user_profiles` table
-        user_profile = (
-            db.query(UserProfile).filter(UserProfile.user_id == current_user.id).first()
-        )
-        if not user_profile:
-            raise HTTPException(status_code=404, detail="User profile not found.")
+            # ✅ Update `updated_at` timestamp for both tables
+            current_user.updated_at = datetime.now(timezone.utc)
+            user_profile.updated_at = datetime.now(timezone.utc)
 
-        if user_data.bio:
-            user_profile.bio = user_data.bio
-        if user_data.nationality:
-            user_profile.nationality = user_data.nationality
-        if user_data.phone_number:
-            user_profile.phone_number = user_data.phone_number
-        if user_data.linkedin:
-            user_profile.linkedin = user_data.linkedin
-        if user_data.twitter:
-            user_profile.twitter = user_data.twitter
-        if user_data.gender:
-            user_profile.gender = user_data.gender
+            # Flush changes to the database
+            db.flush()
 
-        # ✅ Handle Profile Picture URL (frontend handles actual image upload)
-        if user_data.profile_picture:
-            user_profile.profile_picture = (
-                user_data.profile_picture
-            )  # Store the image URL
-
-        # ✅ Update `updated_at` timestamp for both tables
-        current_user.updated_at = datetime.now(timezone.utc)
-        user_profile.updated_at = datetime.now(timezone.utc)
-
-        # Commit changes to database
-        db.commit()
+        # Refresh the objects to reflect the latest changes
         db.refresh(current_user)
         db.refresh(user_profile)
 
@@ -967,7 +972,6 @@ async def update_profile(
         return UserProfileResponse.model_validate(user_profile)
 
     except SQLAlchemyError as e:
-        db.rollback()
         logger.error(f"Database error during profile update: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
