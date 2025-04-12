@@ -12,13 +12,14 @@ from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 
-from src.mastercard_solution_tech_stack_agent.api.admin import router as admin_router
-from src.mastercard_solution_tech_stack_agent.api.auth import router as auth_router
-from src.mastercard_solution_tech_stack_agent.api.route import router as chat_router
-from src.mastercard_solution_tech_stack_agent.api.super_admin import (
-    router as super_admin_router,
+from src.mastercard_solution_tech_stack_agent.api import (
+    admin,
+    auth,
+    route,
+    logs_router,
+    super_admin,
+    users
 )
-from src.mastercard_solution_tech_stack_agent.api.users import router as users_router
 from src.mastercard_solution_tech_stack_agent.config import settings
 from src.mastercard_solution_tech_stack_agent.config.appconfig import env_config
 from src.mastercard_solution_tech_stack_agent.config.settings import Settings
@@ -179,13 +180,12 @@ async def view_logs(log_type: str):
 
 
 # === Include Routers ===
-app.include_router(admin_router, prefix=f"{settings.API_STR}/admin", tags=["Admin"])
-app.include_router(auth_router, prefix=f"{settings.API_STR}/auth", tags=["Auth"])
-app.include_router(chat_router, prefix=f"{settings.API_STR}/chat", tags=["Chat"])
-app.include_router(
-    super_admin_router, prefix=f"{settings.API_STR}/super-admin", tags=["Super Admin"]
-)
-app.include_router(users_router, prefix=f"{settings.API_STR}/users", tags=["Users"])
+app.include_router(admin.router)
+app.include_router(auth.router)
+app.include_router(logs_router.router)
+app.include_router(route.router)
+app.include_router(super_admin.router)
+app.include_router(users.router)
 
 
 # === Start server ===

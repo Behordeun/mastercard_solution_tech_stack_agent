@@ -72,7 +72,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 router = APIRouter(
     prefix="/auth",
-    tags=["auth"],
+    tags=["Auth"],
     responses={
         200: {"description": "Success - Request was successful."},
         201: {"description": "Created - Resource was successfully created."},
