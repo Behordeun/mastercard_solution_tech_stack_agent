@@ -1,4 +1,5 @@
 import logging
+import os
 import re
 from typing import Annotated, Union
 
@@ -6,37 +7,65 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from langchain_core.messages import AIMessage
 from sqlalchemy.orm import Session
+
+from src.mastercard_solution_tech_stack_agent.api.auth import get_current_user
 from src.mastercard_solution_tech_stack_agent.api.data_model import Chat_Message
 from src.mastercard_solution_tech_stack_agent.api.logs_router import (
     router as logs_router,
 )
-from src.mastercard_solution_tech_stack_agent.config.db_setup import SessionLocal
+from src.mastercard_solution_tech_stack_agent.api.schemas import AIMessageResponseModel
+from src.mastercard_solution_tech_stack_agent.config.db_setup import get_db
 from src.mastercard_solution_tech_stack_agent.database.pd_db import (
     get_conversation_history,
 )
-from src.mastercard_solution_tech_stack_agent.database.schemas import AIMessageResponse
-from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import (
-    system_logger,
-)  # ✅ Custom logger
 from src.mastercard_solution_tech_stack_agent.services.manager import (
     chat_event,
     create_chat,
 )
 
+# === Log directory setup ===
+LOG_DIR = "src/mastercard_solution_tech_stack_agent/logs"
+os.makedirs(LOG_DIR, exist_ok=True)  # Ensure the logs directory exists
+
+# === Log file paths ===
+LOG_FILES = {
+    "info": os.path.join(LOG_DIR, "info.log"),
+    "warning": os.path.join(LOG_DIR, "warning.log"),
+    "error": os.path.join(LOG_DIR, "error.log"),
+}
+
+# === Logging format ===
+log_format = logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s")
+
+# === Set up handlers per log level ===
+info_handler = logging.FileHandler(LOG_FILES["info"])
+info_handler.setLevel(logging.INFO)
+info_handler.setFormatter(log_format)
+
+warning_handler = logging.FileHandler(LOG_FILES["warning"])
+warning_handler.setLevel(logging.WARNING)
+warning_handler.setFormatter(log_format)
+
+error_handler = logging.FileHandler(LOG_FILES["error"])
+error_handler.setLevel(logging.ERROR)
+error_handler.setFormatter(log_format)
+
+# === Attach handlers to root logger ===
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.INFO)
+root_logger.handlers = []  # Remove default handlers
+
+root_logger.addHandler(info_handler)
+root_logger.addHandler(warning_handler)
+root_logger.addHandler(error_handler)
+root_logger.addHandler(logging.StreamHandler())  # Also log to console
+
+# === Module-level logger ===
 logger = logging.getLogger(__name__)
 
 
-# Dependency
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-chat_router = APIRouter()
-chat_router.include_router(logs_router)
+router = APIRouter()
+router.include_router(logs_router)
 
 
 def _extract_ai_message(response: Union[AIMessage, dict]) -> AIMessage:
@@ -53,34 +82,48 @@ def _extract_ai_message(response: Union[AIMessage, dict]) -> AIMessage:
     return AIMessage(content=str(response.get("message", "Something went wrong.")))
 
 
-@chat_router.post(
+@router.post(
     "/chat-ai",
-    response_model=AIMessageResponse,
+    response_model=AIMessageResponseModel,  # Use the updated Pydantic model
     response_model_exclude_unset=True,
 )
-async def chat(message: Chat_Message, db: Annotated[Session, Depends(get_db)]):
+async def chat(
+    message: Chat_Message,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[dict, Depends(get_current_user)],  # Require authentication
+):
+    """
+    Handle chat requests. Only accessible to logged-in users.
+    """
     message.message = re.sub(
         r"\[/?INST\]|<\|im_start\|>|<\|im_end\|>", "", message.message
     )
 
     try:
+        # Process the chat event
         response = await chat_event(db, message)
-        # logger.info(f"Chat response before serialization: {response}")
 
         ai_message = _extract_ai_message(response)
         response_id = str(response.get("id") or getattr(ai_message, "id", ""))
 
-        return AIMessageResponse(
-            content=ai_message.content,
+        # Save the AI response to the database
+        new_response = AIMessageResponseModel(
             id=response_id,
+            user_id=current_user["id"],
+            profile_id=None,  # Update this if profile_id is available
+            content=ai_message.content,
             usage_metadata=getattr(ai_message, "usage_metadata", {}),
             response_metadata=getattr(ai_message, "response_metadata", {}),
             additional_kwargs=getattr(ai_message, "additional_kwargs", {}),
+            created_at=datetime.now(),  # Replace with actual timestamp if available
         )
+        db.add(new_response)
+        db.commit()
+
+        return new_response
 
     except Exception as e:
         logger.error(f"Error in chat_ai: {e}", exc_info=True)
-        system_logger.error(e, exc_info=True)  # ✅ Log to error.log
         return JSONResponse(
             content={
                 "content": "An error occurred. Please try again or contact support."
@@ -89,13 +132,26 @@ async def chat(message: Chat_Message, db: Annotated[Session, Depends(get_db)]):
         )
 
 
-@chat_router.get("/chat-history", response_model_exclude_unset=True)
-async def get_chat_history(room_id, db: Annotated[Session, Depends(get_db)]):
-    conversation_history = get_conversation_history(db, room_id=room_id)
+@router.get("/chat-history", response_model_exclude_unset=True)
+async def get_chat_history(
+    room_id: str,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[dict, Depends(get_current_user)],  # Require authentication
+):
+    """
+    Retrieve chat history for a specific room associated with the current user.
+    Only accessible to logged-in users.
+    """
+    # Ensure the room_id belongs to the current user
+    conversation_history = get_conversation_history(
+        db, room_id=room_id, user_id=current_user["id"]
+    )
 
     if not conversation_history:
-        await create_chat(db=db, room_id=room_id)
-        conversation_history = get_conversation_history(db, room_id=room_id)
+        # If no history exists, create a new chat session for the user
+        await create_chat(db=db, room_id=room_id, user_id=current_user["id"])
+        conversation_history = get_conversation_history(
+            db, room_id=room_id, user_id=current_user["id"]
+        )
 
-    print(conversation_history)
     return conversation_history
