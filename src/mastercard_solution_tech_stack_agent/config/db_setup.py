@@ -1,5 +1,6 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
 from src.mastercard_solution_tech_stack_agent.config.appconfig import env_config
 
 REQUIRES_SSL = False
@@ -15,3 +16,11 @@ engine = create_engine(
     },
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
