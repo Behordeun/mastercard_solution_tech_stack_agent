@@ -2,22 +2,14 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from src.mastercard_solution_tech_stack_agent.database.pd_db import DatabaseSession
+
+from src.mastercard_solution_tech_stack_agent.config.db_setup import get_db
 from src.mastercard_solution_tech_stack_agent.database.schemas import (
     ChatLog,
     ConversationHistory,
 )
 
 router = APIRouter(prefix="/logs", tags=["Chat Logs"])
-
-
-# Dependency to get DB session
-def get_db():
-    db = DatabaseSession()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 @router.get("/chat", summary="Get recent chat logs", response_model=List[dict])
