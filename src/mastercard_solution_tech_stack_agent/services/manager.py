@@ -4,6 +4,7 @@ from functools import wraps
 from typing import Any, Callable, Dict, List
 
 from langchain_core.messages import AIMessage
+
 from src.mastercard_solution_tech_stack_agent.api.data_model import (
     Chat_Message,
     Chat_Response,
@@ -130,26 +131,6 @@ class ChatProcessor:
             system_logger.info(f"Conversation history: {messages}")
             print(f"Conversation history: {messages}")
 
-            # messages.append({"role": "user", "content": message_dict.get("message")})
-            # state = {
-            #     "messages": messages,
-            #     "user_interaction_count": len(
-            #         [m for m in messages if m["role"] == "user"]
-            #     ),
-            #     "last_message": None,
-            #     "last_user_response": None,
-            #     "program_context": {},
-            #     "pillar_responses": {},
-            #     "asked_questions": [],
-            #     "current_pillar": None,
-            #     "completed_pillars": [],
-            #     "summary_confirmed": False,
-            #     "recommended_stack": None,
-            #     "tech_stack_ready": False,
-            # }
-
-            # graph = techstack_agent_graph()
-
             last_message = {
                 "messages": [{"role": "user", "content": message_dict.get("message")}]
             }
@@ -228,18 +209,31 @@ async def chat_event(db: Any, message: Chat_Message) -> Dict[str, Any]:
         }
 
 
-async def create_chat(db: Any, room_id) -> Dict[str, Any]:
-    logger.info(f"Create Chat")
+async def create_chat(db: Any, room_id: str, user_id: int) -> Dict[str, Any]:
+    """
+    Create a new chat session for a specific room and user.
+
+    Args:
+        db (Any): Database session.
+        room_id (str): The room ID for the chat session.
+        user_id (int): The ID of the user creating the chat session.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the result of the operation.
+    """
+    logger.info(f"Create Chat for user_id={user_id}, room_id={room_id}")
 
     try:
-        # print(prompt_template.get("OPENING_TEXT", ""))
+        # Insert the initial conversation into the database
         insert_conversation(
             db,
             ai_message=prompt_template.get("OPENING_TEXT", ""),
             room_id=room_id,
+            user_id=user_id,  # Associate the chat with the user
             user_message="",
         )
 
+        # Update the agent's state with the initial configuration
         config = {
             "configurable": {
                 "conversation_id": room_id,
@@ -253,6 +247,11 @@ async def create_chat(db: Any, room_id) -> Dict[str, Any]:
                 "conversation_stage": ConversationStage.greeting,
             },
         )
+
+        return {
+            "message": "Chat session created successfully.",
+            "sender": "AI",
+        }
 
     except Exception as e:
         system_logger.error(e, exc_info=True)
