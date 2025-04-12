@@ -1,6 +1,7 @@
 import logging
 import os
 import re
+from datetime import datetime
 from typing import Annotated, Union
 
 from fastapi import APIRouter, Depends
@@ -9,7 +10,7 @@ from langchain_core.messages import AIMessage
 from sqlalchemy.orm import Session
 
 from src.mastercard_solution_tech_stack_agent.api.auth import get_current_user
-from src.mastercard_solution_tech_stack_agent.api.data_model import Chat_Message
+from src.mastercard_solution_tech_stack_agent.api.data_model import Chat_Message, User
 from src.mastercard_solution_tech_stack_agent.api.logs_router import (
     router as logs_router,
 )
@@ -64,7 +65,31 @@ root_logger.addHandler(logging.StreamHandler())  # Also log to console
 logger = logging.getLogger(__name__)
 
 
-router = APIRouter()
+router = APIRouter(
+    responses={
+        200: {"description": "Success - Request was successful."},
+        201: {"description": "Created - Resource was successfully created."},
+        400: {
+            "description": "Bad Request - The request could not be understood or was missing required parameters."
+        },
+        401: {
+            "description": "Unauthorized - Authentication is required and has failed or not yet been provided."
+        },
+        403: {
+            "description": "Forbidden - The request was valid, but you do not have the necessary permissions."
+        },
+        404: {"description": "Not Found - The requested resource could not be found."},
+        409: {
+            "description": "Conflict - The request could not be completed due to a conflict with the current state of the resource."
+        },
+        422: {
+            "description": "Unprocessable Entity - The request was well-formed but could not be followed due to validation errors."
+        },
+        500: {
+            "description": "Internal Server Error - An unexpected server error occurred."
+        },
+    },
+)
 router.include_router(logs_router)
 
 
@@ -90,7 +115,7 @@ def _extract_ai_message(response: Union[AIMessage, dict]) -> AIMessage:
 async def chat(
     message: Chat_Message,
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[dict, Depends(get_current_user)],  # Require authentication
+    current_user: Annotated[User, Depends(get_current_user)],  # Use User model
 ):
     """
     Handle chat requests. Only accessible to logged-in users.
@@ -109,7 +134,7 @@ async def chat(
         # Save the AI response to the database
         new_response = AIMessageResponseModel(
             id=response_id,
-            user_id=current_user["id"],
+            user_id=current_user.id,  # Use dot notation
             profile_id=None,  # Update this if profile_id is available
             content=ai_message.content,
             usage_metadata=getattr(ai_message, "usage_metadata", {}),
@@ -136,7 +161,7 @@ async def chat(
 async def get_chat_history(
     room_id: str,
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[dict, Depends(get_current_user)],  # Require authentication
+    current_user: Annotated[User, Depends(get_current_user)],  # Use User model
 ):
     """
     Retrieve chat history for a specific room associated with the current user.
@@ -144,14 +169,16 @@ async def get_chat_history(
     """
     # Ensure the room_id belongs to the current user
     conversation_history = get_conversation_history(
-        db, room_id=room_id, user_id=current_user["id"]
+        db, room_id=room_id, user_id=current_user.id  # Use dot notation
     )
 
     if not conversation_history:
         # If no history exists, create a new chat session for the user
-        await create_chat(db=db, room_id=room_id, user_id=current_user["id"])
+        await create_chat(
+            db=db, room_id=room_id, user_id=current_user.id
+        )  # Use dot notation
         conversation_history = get_conversation_history(
-            db, room_id=room_id, user_id=current_user["id"]
+            db, room_id=room_id, user_id=current_user.id  # Use dot notation
         )
 
     return conversation_history

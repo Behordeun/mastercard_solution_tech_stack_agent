@@ -210,7 +210,7 @@ class UserProfileBase(BaseModel):
     first_name: str
     last_name: str
     is_verified: bool
-    is_author: bool
+
     is_admin: bool
     is_expert: bool
     # Add other fields relevant to the profile
@@ -234,7 +234,6 @@ class UserProfileResponse(BaseModel):
     gender: Optional[Gender] = None
     is_active: bool
     is_verified: bool
-    is_author: bool
     is_admin: bool
     is_super_admin: bool
     is_expert: bool = False
@@ -258,7 +257,6 @@ class UserProfileResponse(BaseModel):
             gender=getattr(obj, "gender", None),
             is_active=obj.is_active,
             is_verified=obj.is_verified,
-            is_author=obj.is_author,
             is_admin=obj.is_admin,
             is_super_admin=obj.is_super_admin,
             is_expert=obj.is_expert,

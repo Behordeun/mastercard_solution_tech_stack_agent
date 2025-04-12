@@ -80,8 +80,6 @@ logger = logging.getLogger(__name__)
 
 
 router = APIRouter(
-    prefix="/users",
-    tags=["Users"],
     responses={
         200: {"description": "Success - Request was successful."},
         201: {"description": "Created - Resource was successfully created."},

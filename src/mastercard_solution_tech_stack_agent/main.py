@@ -88,13 +88,15 @@ async def lifespan(app: FastAPI):
 # === FastAPI instance ===
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    description=description,
+    description="API documentation for TechStack AI Server",
     openapi_url=f"{settings.API_STR}/openapi.json",
+    docs_url=f"{settings.API_STR}/docs",  # SwaggerUI
+    redoc_url=f"{settings.API_STR}/redoc",  # ReDoc
+    version=settings.VERSION,
     license_info={
         "name": "Apache 2.0",
         "url": "https://www.apache.org/licenses/LICENSE-2.0.html",
     },
-    lifespan=lifespan,
 )
 
 # === CORS configuration ===
@@ -180,12 +182,14 @@ async def view_logs(log_type: str):
 
 
 # === Include Routers ===
-app.include_router(admin.router)
-app.include_router(auth.router)
-app.include_router(logs_router.router)
-app.include_router(route.router)
-app.include_router(super_admin.router)
-app.include_router(users.router)
+app.include_router(admin.router, prefix=f"{settings.API_STR}/admin", tags=["Admin"])
+app.include_router(auth.router, prefix=f"{settings.API_STR}/auth", tags=["Auth"])
+app.include_router(logs_router.router, prefix=f"{settings.API_STR}/logs", tags=["Logs"])
+app.include_router(route.router, prefix=f"{settings.API_STR}/chat", tags=["Chat"])
+app.include_router(
+    super_admin.router, prefix=f"{settings.API_STR}/super-admin", tags=["Super Admin"]
+)
+app.include_router(users.router, prefix=f"{settings.API_STR}/users", tags=["Users"])
 
 
 # === Start server ===
