@@ -3,6 +3,7 @@ from contextlib import contextmanager
 from typing import Generator, Optional
 
 from sqlalchemy.orm import Session
+
 from src.mastercard_solution_tech_stack_agent.config.db_setup import SessionLocal
 from src.mastercard_solution_tech_stack_agent.database.schemas import (
     AgentSession,
@@ -11,14 +12,6 @@ from src.mastercard_solution_tech_stack_agent.database.schemas import (
 
 logger = logging.getLogger(__name__)
 
-# # ✅ Database connection via env
-# DATABASE_URL = os.getenv("POSTGRES_DB_URL")
-# if not DATABASE_URL:
-#     raise ValueError("🚨 ERROR: POSTGRES_DB_URL is not set. Check your .env file.")
-
-# # ✅ SQLAlchemy engine & session
-# engine = create_engine(DATABASE_URL, echo=True)
-# SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 DatabaseSession = SessionLocal
 
 
@@ -34,28 +27,60 @@ def get_db() -> Generator[Session, None, None]:
 
 # ✅ Conversation Insertion
 def insert_conversation(
-    db: Session, room_id: str, ai_message: str, user_message: str = ""
-) -> None:
-    try:
-        conversation = ConversationHistory(
-            room_id=room_id, ai_message=ai_message, user_message=user_message
-        )
-        db.add(conversation)
-        db.commit()
+    db: Session, ai_message: str, room_id: str, user_id: int, user_message: str = ""
+):
+    """
+    Insert a new conversation into the database.
 
-        print("Conversation Added")
+    Args:
+        db (Session): SQLAlchemy database session.
+        ai_message (str): The AI's initial message.
+        room_id (str): The room ID for the conversation.
+        user_id (int): The ID of the user associated with the conversation.
+        user_message (str): The user's initial message (default: "").
+
+    Returns:
+        None
+    """
+    try:
+        new_conversation = ConversationHistory(
+            room_id=room_id,
+            user_id=user_id,
+            ai_message=ai_message,
+            user_message=user_message,
+        )
+        db.add(new_conversation)
+        db.commit()
     except Exception as e:
-        db.rollback()
-        logger.error(f"Error inserting chat message: {str(e)}")
+        logger.error(f"Error inserting conversation: {str(e)}")
         raise
 
 
 # ✅ Chat History Retrieval
-def get_conversation_history(db: Session, room_id: str, k: int = 48) -> str:
+def get_conversation_history(
+    db: Session, room_id: str, user_id: int, k: int = 48
+) -> list:
+    """
+    Retrieve conversation history for a specific room and user.
+
+    Args:
+        db (Session): SQLAlchemy database session.
+        room_id (str): The room ID for the conversation.
+        user_id (int): The ID of the user requesting the conversation history.
+        k (int): The maximum number of messages to retrieve (default: 48).
+
+    Returns:
+        list: A list of formatted conversation parts (user and AI messages).
+    """
     try:
+        # Query messages filtered by room_id and user_id
         messages = (
             db.query(ConversationHistory)
-            .filter(ConversationHistory.room_id == room_id)
+            .filter(
+                ConversationHistory.room_id == room_id,
+                ConversationHistory.user_id
+                == user_id,  # Ensure messages belong to the user
+            )
             .order_by(ConversationHistory.created_at.desc())
             .limit(k)
             .all()
