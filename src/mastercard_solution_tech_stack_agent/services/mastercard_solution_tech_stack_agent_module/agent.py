@@ -119,6 +119,7 @@ class Assistant:
             "summary_confirmed": False,
             "recommended_stack": None,
             "tech_stack_ready": False,
+            "conversation_stage": ConversationStage.greeting,  # Ensure this is initialized
         }
         for key in defaults:
             if key not in state:
@@ -171,15 +172,15 @@ class Assistant:
 
     async def run(self, state: State, config: RunnableConfig) -> Dict:
         try:
-            # print("Converstaion Stage: ", self.conversation_stage)
+            # Initialize the state with default values
             state = self._initialize_state(state)
+
             messages = state["messages"]
-            # conversation_state = state["conversation_stage"]
-            print("Converstaion state: ", state["conversation_stage"])
+            print("Conversation state: ", state["conversation_stage"])
             print("Interaction Count: ", state["user_interaction_count"])
             state["user_interaction_count"] += 1
 
-            # print("Messages: ", messages)
+            # Process the last user message
             last_user_message = next(
                 (m for m in reversed(messages) if isinstance(m, HumanMessage)), None
             )
@@ -188,7 +189,6 @@ class Assistant:
             if last_user_message:
                 state["last_user_response"] = last_user_message.content
                 user_msg = last_user_message.content.lower()
-                # print("Last User Message: ", user_msg)
 
                 if any(greet in user_msg for greet in ["hi", "hello", "hey"]):
                     state["conversation_stage"] = ConversationStage.greeting
@@ -198,57 +198,14 @@ class Assistant:
                         "Let's start with your project goal...",
                     )
 
-                # Update conversation stage based on user input
+                # Handle other conversation stages
                 elif state["conversation_stage"] == ConversationStage.greeting:
                     state["conversation_stage"] = ConversationStage.specify_goal
-
                     return self._push(
                         state,
                         "Great! Let's begin with your project:\n\n"
                         "🧭 What are you building? (e.g., 'A patient management system', 'An educational platform')",
                     )
-
-                elif state["conversation_stage"] == ConversationStage.specify_goal:
-                    state["conversation_stage"] = ConversationStage.project_description
-
-                    state["program_context"]["initiative"] = state["last_user_response"]
-                    return self._push(state, "Briefly describe what you are building")
-
-                elif (
-                    state["conversation_stage"] == ConversationStage.project_description
-                ):
-                    state["conversation_stage"] = ConversationStage.domain
-
-                    if not state["program_context"].get("initiative"):
-                        state["program_context"]["initiative"] = state[
-                            "last_user_response"
-                        ]
-                        return self._ask_for_domain(state)
-
-                elif state["conversation_stage"] == ConversationStage.domain:
-                    if not state["program_context"].get("domain"):
-                        state["program_context"]["domain"] = state["last_user_response"]
-                        state["conversation_stage"] = ConversationStage.pillar_questions
-                        return self._start_pillar_questions(state)
-
-                elif state["conversation_stage"] == ConversationStage.pillar_questions:
-                    state = self._save_pillar_response(state)
-                    return self._next_pillar_question(state)
-
-                elif state["conversation_stage"] == ConversationStage.generate_summary:
-                    state["conversation_stage"] == ConversationStage.recommend_stack
-                    return await self._recommend_stack(state)
-
-            # Initial greeting
-            if state["conversation_stage"] == ConversationStage.greeting:
-                state["conversation_stage"] = (
-                    ConversationStage.awaiting_greeting_response
-                )
-                return self._push(
-                    state,
-                    "👋 Hello! I'm your AI Solution Architect. I specialize in designing optimal technology stacks.\n\n"
-                    "Let's start with your project goal...",
-                )
 
             # Handle empty state transitions
             if not state["program_context"].get("initiative"):

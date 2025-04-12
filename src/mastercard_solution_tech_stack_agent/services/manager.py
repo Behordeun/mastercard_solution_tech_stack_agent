@@ -1,7 +1,7 @@
 import asyncio
 import logging
-from functools import wraps
-from typing import Any, Callable, Dict, List
+from functools import partial, wraps
+from typing import Any, Callable, Dict
 
 from langchain_core.messages import AIMessage
 
@@ -61,9 +61,9 @@ async def safe_db_operation(operation: Callable, *args: Any, **kwargs: Any) -> A
     try:
         if asyncio.iscoroutinefunction(operation):
             return await operation(*args, **kwargs)
-        else:
-            loop = asyncio.get_event_loop()
-            return await loop.run_in_executor(None, operation, *args, **kwargs)
+        loop = asyncio.get_event_loop()
+        func_with_args = partial(operation, *args, **kwargs)
+        return await loop.run_in_executor(None, func_with_args)
     except Exception as e:
         system_logger.error(e, exc_info=True)
         raise DatabaseOperationError(str(e)) from e
@@ -77,12 +77,18 @@ class ChatProcessor:
         self,
         message_dict: Dict[str, Any],
         ai_message: str,
+        user_id: int,
         system_message: str = "",
         loggable: bool = True,
     ) -> Dict[str, Any]:
         try:
             if loggable and system_message:
                 message_dict["message"] = system_message
+
+            if user_id is None:
+                raise ValueError(
+                    "user_id is required but was not provided to log_and_respond"
+                )
 
             with DatabaseSession() as session:
                 room_id = message_dict.get("roomId") or message_dict.get("room_id")
@@ -92,6 +98,7 @@ class ChatProcessor:
                 session.add(
                     ChatLog(
                         room_id=room_id,
+                        user_id=user_id,
                         user_message=message_dict.get("message"),
                         ai_response=ai_message,
                         system_note=system_message.replace("SYSTEM: ", ""),
@@ -102,11 +109,11 @@ class ChatProcessor:
 
             return Chat_Response(
                 id=str(message_dict.get("id")),
-                roomId=message_dict.get("roomId"),
-                resourceUrls=message_dict.get("resourceUrls"),
+                roomId=room_id,
+                resourceUrls=message_dict.get("resourceUrls") or [],
                 sender="AI",
                 message=ai_message,
-                tags=message_dict.get("tags"),
+                tags=message_dict.get("tags") or [],
             ).model_dump()
 
         except Exception as e:
@@ -122,20 +129,20 @@ class ChatProcessor:
 
     @async_retry_decorator()
     async def handle_graph_integration(
-        self, message_dict: Dict[str, Any]
+        self, message_dict: Dict[str, Any], user_id: int
     ) -> Dict[str, Any]:
         try:
             messages = await safe_db_operation(
-                get_conversation_history, self.db, message_dict.get("roomId")
+                get_conversation_history,
+                self.db,
+                room_id=message_dict.get("roomId"),
+                user_id=user_id,
             )
-            system_logger.info(f"Conversation history: {messages}")
-            print(f"Conversation history: {messages}")
 
             last_message = {
                 "messages": [{"role": "user", "content": message_dict.get("message")}]
             }
 
-            print("Last Message:", last_message)
             config = {
                 "configurable": {
                     "conversation_id": message_dict.get("roomId"),
@@ -143,16 +150,15 @@ class ChatProcessor:
                 }
             }
 
-            # ✅ Fix: Use async invocation
+            output = {}
             async for event in agent.astream(last_message, config):
                 for value in event.values():
                     output = value
-                    print(f"Assistant {value['messages'][-1]}")
 
             if not isinstance(output, dict):
                 raise ValueError("Graph did not return a valid dictionary.")
 
-            ai_messages: List[str] = [
+            ai_messages = [
                 msg.content
                 for msg in output.get("messages", [])
                 if isinstance(msg, AIMessage)
@@ -161,26 +167,27 @@ class ChatProcessor:
                 raise ValueError("No AI response generated.")
 
             ai_message = ai_messages[-1].strip()
-            return await self.log_and_respond(message_dict, ai_message)
+            return await self.log_and_respond(message_dict, ai_message, user_id=user_id)
 
         except asyncio.TimeoutError as e:
             system_logger.error(e, exc_info=True)
             return await self.log_and_respond(
-                message_dict, "Request timed out. Please try again.", "", False
+                message_dict,
+                "Request timed out. Please try again.",
+                user_id=user_id,
+                loggable=False,
             )
-
         except Exception as e:
-            print(e)
             system_logger.error(e, exc_info=True)
             return await self.log_and_respond(
                 message_dict,
                 "We're experiencing technical difficulties. Please try again.",
-                "",
-                False,
+                user_id=user_id,
+                loggable=False,
             )
 
 
-async def chat_event(db: Any, message: Chat_Message) -> Dict[str, Any]:
+async def chat_event(db: Any, message: Chat_Message, user_id: int) -> Dict[str, Any]:
     logger.info(f"TSA145: Received input: {message.message}")
 
     try:
@@ -188,17 +195,19 @@ async def chat_event(db: Any, message: Chat_Message) -> Dict[str, Any]:
             return {"message": "No input provided."}
 
         chat_processor = ChatProcessor(db)
-        response = await chat_processor.handle_graph_integration(message.model_dump())
+        response = await chat_processor.handle_graph_integration(
+            message.model_dump(), user_id
+        )
 
-        print(f"TSA145 Response: {response['message']}")
+        logger.info(f"TSA145 Response: {response['message']}")
 
         insert_conversation(
             db,
             ai_message=response["message"],
             room_id=message.roomId,
+            user_id=user_id,
             user_message=message.message,
         )
-        # logger.info(f"TSA145 Response: {response['message']}")
         return response
 
     except Exception as e:
@@ -210,30 +219,17 @@ async def chat_event(db: Any, message: Chat_Message) -> Dict[str, Any]:
 
 
 async def create_chat(db: Any, room_id: str, user_id: int) -> Dict[str, Any]:
-    """
-    Create a new chat session for a specific room and user.
-
-    Args:
-        db (Any): Database session.
-        room_id (str): The room ID for the chat session.
-        user_id (int): The ID of the user creating the chat session.
-
-    Returns:
-        Dict[str, Any]: A dictionary containing the result of the operation.
-    """
     logger.info(f"Create Chat for user_id={user_id}, room_id={room_id}")
 
     try:
-        # Insert the initial conversation into the database
         insert_conversation(
             db,
             ai_message=prompt_template.get("OPENING_TEXT", ""),
             room_id=room_id,
-            user_id=user_id,  # Associate the chat with the user
+            user_id=user_id,
             user_message="",
         )
 
-        # Update the agent's state with the initial configuration
         config = {
             "configurable": {
                 "conversation_id": room_id,
