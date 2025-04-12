@@ -887,6 +887,7 @@ async def get_user_profile(
     user_profile = (
         db.query(UserProfile).filter(UserProfile.user_id == current_user.id).first()
     )
+    logger.info(f"User profile found: {user_profile}")
 
     if not user_profile:
         logger.error(f"User profile not found for user: {current_user.email}")
@@ -972,6 +973,7 @@ async def update_profile(
                 .filter(UserProfile.user_id == current_user.id)
                 .first()
             )
+            logger.info(f"User profile found: {user_profile}")
             if not user_profile:
                 raise HTTPException(status_code=404, detail="User profile not found.")
 

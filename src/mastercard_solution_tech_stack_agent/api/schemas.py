@@ -104,7 +104,6 @@ class UserCreate(UserBase):
         ..., min_length=8, description="Password must be at least 8 characters long."
     )
     confirm_password: str
-    profile_picture_url: Optional[str] = None
 
     @field_validator("username")
     def validate_username(cls, v):

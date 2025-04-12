@@ -19,6 +19,7 @@ from src.mastercard_solution_tech_stack_agent.config.db_setup import get_db
 from src.mastercard_solution_tech_stack_agent.database.pd_db import (
     get_conversation_history,
 )
+from src.mastercard_solution_tech_stack_agent.database.schemas import AIMessageResponse
 from src.mastercard_solution_tech_stack_agent.services.manager import (
     chat_event,
     create_chat,
@@ -26,7 +27,7 @@ from src.mastercard_solution_tech_stack_agent.services.manager import (
 
 # === Log directory setup ===
 LOG_DIR = "src/mastercard_solution_tech_stack_agent/logs"
-os.makedirs(LOG_DIR, exist_ok=True)  # Ensure the logs directory exists
+os.makedirs(LOG_DIR, exist_ok=True)
 
 # === Log file paths ===
 LOG_FILES = {
@@ -39,83 +40,59 @@ LOG_FILES = {
 log_format = logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s")
 
 # === Set up handlers per log level ===
-info_handler = logging.FileHandler(LOG_FILES["info"])
-info_handler.setLevel(logging.INFO)
-info_handler.setFormatter(log_format)
-
-warning_handler = logging.FileHandler(LOG_FILES["warning"])
-warning_handler.setLevel(logging.WARNING)
-warning_handler.setFormatter(log_format)
-
-error_handler = logging.FileHandler(LOG_FILES["error"])
-error_handler.setLevel(logging.ERROR)
-error_handler.setFormatter(log_format)
+handlers = []
+for level, path in LOG_FILES.items():
+    handler = logging.FileHandler(path)
+    handler.setLevel(getattr(logging, level.upper()))
+    handler.setFormatter(log_format)
+    handlers.append(handler)
 
 # === Attach handlers to root logger ===
 root_logger = logging.getLogger()
 root_logger.setLevel(logging.INFO)
-root_logger.handlers = []  # Remove default handlers
+root_logger.handlers = []  # Remove existing
+for h in handlers:
+    root_logger.addHandler(h)
+root_logger.addHandler(logging.StreamHandler())  # Console
 
-root_logger.addHandler(info_handler)
-root_logger.addHandler(warning_handler)
-root_logger.addHandler(error_handler)
-root_logger.addHandler(logging.StreamHandler())  # Also log to console
-
-# === Module-level logger ===
 logger = logging.getLogger(__name__)
-
 
 router = APIRouter(
     responses={
         200: {"description": "Success - Request was successful."},
         201: {"description": "Created - Resource was successfully created."},
-        400: {
-            "description": "Bad Request - The request could not be understood or was missing required parameters."
-        },
-        401: {
-            "description": "Unauthorized - Authentication is required and has failed or not yet been provided."
-        },
-        403: {
-            "description": "Forbidden - The request was valid, but you do not have the necessary permissions."
-        },
-        404: {"description": "Not Found - The requested resource could not be found."},
-        409: {
-            "description": "Conflict - The request could not be completed due to a conflict with the current state of the resource."
-        },
-        422: {
-            "description": "Unprocessable Entity - The request was well-formed but could not be followed due to validation errors."
-        },
-        500: {
-            "description": "Internal Server Error - An unexpected server error occurred."
-        },
-    },
+        400: {"description": "Bad Request - Missing or incorrect parameters."},
+        401: {"description": "Unauthorized - Login required."},
+        403: {"description": "Forbidden - Insufficient permissions."},
+        404: {"description": "Not Found - Resource not found."},
+        409: {"description": "Conflict - Data conflict occurred."},
+        422: {"description": "Unprocessable Entity - Validation error."},
+        500: {"description": "Internal Server Error."},
+    }
 )
 router.include_router(logs_router)
 
 
 def _extract_ai_message(response: Union[AIMessage, dict]) -> AIMessage:
-    """Extract AI message from a variety of formats."""
+    """Extract AI message from response."""
     if isinstance(response, AIMessage):
         return response
-    elif isinstance(response, dict):
+    if isinstance(response, dict):
         if isinstance(response.get("message"), AIMessage):
             return response["message"]
-        elif isinstance(response.get("messages"), list):
-            for msg in reversed(response["messages"]):
-                if isinstance(msg, AIMessage):
-                    return msg
+        for msg in reversed(response.get("messages", [])):
+            if isinstance(msg, AIMessage):
+                return msg
     return AIMessage(content=str(response.get("message", "Something went wrong.")))
 
 
 @router.post(
-    "/chat-ai",
-    response_model=AIMessageResponseModel,  # Use the updated Pydantic model
-    response_model_exclude_unset=True,
+    "/chat-ai", response_model=AIMessageResponseModel, response_model_exclude_unset=True
 )
 async def chat(
     message: Chat_Message,
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],  # Use User model
+    current_user: Annotated[User, Depends(get_current_user)],
 ):
     """
     Handle chat requests. Only accessible to logged-in users.
@@ -125,30 +102,63 @@ async def chat(
     )
 
     try:
-        # Process the chat event
-        response = await chat_event(db, message)
+        logger.info(f"TSA145: Received input: {message.message}")
 
+        # Get conversation history (but not using it in this endpoint)
+        _ = get_conversation_history(
+            db, room_id=message.roomId, user_id=current_user.id
+        )
+
+        # Process the chat
+        response = await chat_event(db, message, user_id=current_user.id)
+        logger.info(f"TSA145 Response: {response}")
         ai_message = _extract_ai_message(response)
-        response_id = str(response.get("id") or getattr(ai_message, "id", ""))
 
-        # Save the AI response to the database
-        new_response = AIMessageResponseModel(
-            id=response_id,
-            user_id=current_user.id,  # Use dot notation
-            profile_id=None,  # Update this if profile_id is available
+        # Determine response ID
+        response_id = (
+            response.get("id")
+            if isinstance(response, dict)
+            else getattr(ai_message, "id", None)
+        )
+        if response_id is None or not str(response_id).isdigit():
+            logger.warning("Invalid or missing response ID. Generating a fallback ID.")
+            response_id = int(datetime.now().timestamp())
+
+        # Save response
+        new_response = AIMessageResponse(
+            user_id=current_user.id,
+            profile_id=None,
             content=ai_message.content,
             usage_metadata=getattr(ai_message, "usage_metadata", {}),
             response_metadata=getattr(ai_message, "response_metadata", {}),
             additional_kwargs=getattr(ai_message, "additional_kwargs", {}),
-            created_at=datetime.now(),  # Replace with actual timestamp if available
+            created_at=datetime.now(),
         )
-        db.add(new_response)
-        db.commit()
+        try:
+            db.add(new_response)
+            db.commit()
+            db.refresh(new_response)
+        except Exception as db_err:
+            db.rollback()
+            logger.error(f"DB insert failed: {db_err}", exc_info=True)
+            return JSONResponse(
+                content={"content": "Server error while saving response."},
+                status_code=500,
+            )
 
-        return new_response
+        return AIMessageResponseModel(
+            id=new_response.id,
+            user_id=new_response.user_id,
+            profile_id=new_response.profile_id,
+            content=new_response.content,
+            usage_metadata=new_response.usage_metadata,
+            response_metadata=new_response.response_metadata,
+            additional_kwargs=new_response.additional_kwargs,
+            created_at=new_response.created_at,
+        )
 
     except Exception as e:
-        logger.error(f"Error in chat_ai: {e}", exc_info=True)
+        logger.error(f"Error in /chat-ai: {e}", exc_info=True)
         return JSONResponse(
             content={
                 "content": "An error occurred. Please try again or contact support."
@@ -161,24 +171,27 @@ async def chat(
 async def get_chat_history(
     room_id: int,
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],  # Use User model
+    current_user: Annotated[User, Depends(get_current_user)],
 ):
     """
     Retrieve chat history for a specific room associated with the current user.
-    Only accessible to logged-in users.
     """
-    # Ensure the room_id belongs to the current user
-    conversation_history = get_conversation_history(
-        db, room_id=room_id, user_id=current_user.id  # Use dot notation
-    )
-
-    if not conversation_history:
-        # If no history exists, create a new chat session for the user
-        await create_chat(
-            db=db, room_id=room_id, user_id=current_user.id
-        )  # Use dot notation
+    try:
         conversation_history = get_conversation_history(
-            db, room_id=room_id, user_id=current_user.id  # Use dot notation
+            db, room_id=room_id, user_id=current_user.id
         )
 
-    return conversation_history
+        if not conversation_history:
+            await create_chat(db=db, room_id=room_id, user_id=current_user.id)
+            conversation_history = get_conversation_history(
+                db, room_id=room_id, user_id=current_user.id
+            )
+
+        return conversation_history
+
+    except Exception as e:
+        logger.error(f"Error fetching chat history: {e}", exc_info=True)
+        return JSONResponse(
+            content={"content": "Failed to retrieve chat history."},
+            status_code=500,
+        )
