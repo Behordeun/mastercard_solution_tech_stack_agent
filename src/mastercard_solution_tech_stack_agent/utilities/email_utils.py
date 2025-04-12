@@ -3,16 +3,19 @@ import os
 
 from fastapi_mail import ConnectionConfig, FastMail, MessageSchema
 
+from src.mastercard_solution_tech_stack_agent.config.appconfig import env_config
+
 # Initialize logger
 logger = logging.getLogger(__name__)
 
 # Email configuration from environment variables using SendGrid
 conf = ConnectionConfig(
-    MAIL_USERNAME="apikey",  # SendGrid requires 'apikey' as the username
-    MAIL_PASSWORD=os.environ.get("SENDGRID_API_KEY"),  # Your SendGrid API key
-    MAIL_FROM=os.environ.get("EMAIL_FROM"),
-    MAIL_PORT=os.environ.get("EMAIL_PORT"),  # Port 587 for TLS
-    MAIL_SERVER="smtp.sendgrid.net",  # SendGrid's SMTP server
+    MAIL_USERNAME=env_config.mail_username,  # SendGrid requires 'apikey' as the username
+    MAIL_PASSWORD=env_config.sendgrid_api_key,  # Your SendGrid API key
+    MAIL_FROM=env_config.email_from,  # Sender email address
+    MAIL_FROM_NAME=env_config.email_from_name,  # Sender name
+    MAIL_PORT=env_config.mail_port,  # Port 587 for TLS
+    MAIL_SERVER=env_config.mail_server,  # SendGrid's SMTP server
     MAIL_STARTTLS=True,  # Enable STARTTLS
     MAIL_SSL_TLS=False,  # No need to use SSL if STARTTLS is enabled
     USE_CREDENTIALS=True,
