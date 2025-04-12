@@ -1,4 +1,4 @@
-# import libraries
+# Import libraries
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -9,18 +9,27 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from src.api.route import chat_router
-from src.config import settings
-from src.config.appconfig import env_config
-from src.config.settings import Settings
-from src.error_trace.errorlogger import system_logger
-from src.utilities.Printer import printer
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 
+from src.mastercard_solution_tech_stack_agent.api.admin import router as admin_router
+from src.mastercard_solution_tech_stack_agent.api.auth import router as auth_router
+from src.mastercard_solution_tech_stack_agent.api.route import router as chat_router
+from src.mastercard_solution_tech_stack_agent.api.super_admin import (
+    router as super_admin_router,
+)
+from src.mastercard_solution_tech_stack_agent.api.users import router as users_router
+from src.mastercard_solution_tech_stack_agent.config import settings
+from src.mastercard_solution_tech_stack_agent.config.appconfig import env_config
+from src.mastercard_solution_tech_stack_agent.config.settings import Settings
+from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import (
+    system_logger,
+)
+from src.mastercard_solution_tech_stack_agent.utilities.Printer import printer
+
 # === Log directory setup ===
-LOG_DIR = "src/logs"
-os.makedirs(LOG_DIR, exist_ok=True)
+LOG_DIR = "src/mastercard_solution_tech_stack_agent/logs"
+os.makedirs(LOG_DIR, exist_ok=True)  # Ensure the logs directory exists
 
 # === Log file paths ===
 LOG_FILES = {
@@ -57,6 +66,7 @@ root_logger.addHandler(logging.StreamHandler())  # Also log to console
 
 # === Module-level logger ===
 logger = logging.getLogger(__name__)
+
 settings = Settings()
 
 description = f"""
@@ -100,8 +110,14 @@ if env_config.env != "development":
     app.add_middleware(HTTPSRedirectMiddleware)
 
 # === Mount static assets ===
-app.mount("/static", StaticFiles(directory="src/static"), name="static")
-templates = Jinja2Templates(directory="src/templates")
+app.mount(
+    "/static",
+    StaticFiles(directory="src/mastercard_solution_tech_stack_agent/static"),
+    name="static",
+)
+templates = Jinja2Templates(
+    directory="src/mastercard_solution_tech_stack_agent/templates"
+)
 
 
 # === Serve frontend ===
@@ -141,12 +157,6 @@ def APIHome():
     }
 
 
-# === Health check ===
-@app.get("/health", status_code=status.HTTP_200_OK)
-def APIHealth():
-    return "healthy"
-
-
 # === Log Viewer API ===
 @app.get("/view-logs/{log_type}/", response_class=PlainTextResponse)
 async def view_logs(log_type: str):
@@ -160,7 +170,7 @@ async def view_logs(log_type: str):
 
     try:
         if not os.path.exists(log_file):
-            raise HTTPException(status_code=404, detail=f"Log file not found.")
+            raise HTTPException(status_code=404, detail="Log file not found.")
         with open(log_file, "r", encoding="utf-8") as f:
             return f.read() or "Log file is empty."
     except Exception as e:
@@ -168,8 +178,15 @@ async def view_logs(log_type: str):
         raise HTTPException(status_code=500, detail="Error reading log file.")
 
 
-# === Main chat router ===
-app.include_router(chat_router, prefix=settings.API_STR)
+# === Include Routers ===
+app.include_router(admin_router, prefix=f"{settings.API_STR}/admin", tags=["Admin"])
+app.include_router(auth_router, prefix=f"{settings.API_STR}/auth", tags=["Auth"])
+app.include_router(chat_router, prefix=f"{settings.API_STR}/chat", tags=["Chat"])
+app.include_router(
+    super_admin_router, prefix=f"{settings.API_STR}/super-admin", tags=["Super Admin"]
+)
+app.include_router(users_router, prefix=f"{settings.API_STR}/users", tags=["Users"])
+
 
 # === Start server ===
 if __name__ == "__main__":
