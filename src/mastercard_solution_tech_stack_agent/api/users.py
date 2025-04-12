@@ -1,0 +1,981 @@
+import logging
+import os
+import re
+from datetime import datetime, timedelta, timezone
+
+from authlib.integrations.starlette_client import OAuth
+from fastapi import APIRouter, Body, Depends, HTTPException, Request, Response, status
+from fastapi.responses import JSONResponse
+
+# from jose import jwt
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
+
+from src.mastercard_solution_tech_stack_agent.api.auth import (
+    create_access_token,
+    create_refresh_token,
+    generate_random_otp,
+    get_current_user,
+    hash_password,
+    normalize_input,
+    verify_password,
+)
+from src.mastercard_solution_tech_stack_agent.api.schemas import (
+    Gender,
+    PasswordResetConfirmation,
+    PasswordUpdateSchema,
+    TokenResponse,
+    UserCreate,
+    UserProfileResponse,
+    UserUpdate,
+)
+from src.mastercard_solution_tech_stack_agent.config.appconfig import env_config
+from src.mastercard_solution_tech_stack_agent.config.db_setup import get_db
+from src.mastercard_solution_tech_stack_agent.database.schemas import User
+from src.mastercard_solution_tech_stack_agent.utilities.email_utils import (
+    send_confirmation_email,
+    send_password_reset_confirmation_email,
+    send_password_reset_email,
+    send_verification_email,
+)
+
+# === Log directory setup ===
+LOG_DIR = "src/mastercard_solution_tech_stack_agent/logs"
+os.makedirs(LOG_DIR, exist_ok=True)  # Ensure the logs directory exists
+
+# === Log file paths ===
+LOG_FILES = {
+    "info": os.path.join(LOG_DIR, "info.log"),
+    "warning": os.path.join(LOG_DIR, "warning.log"),
+    "error": os.path.join(LOG_DIR, "error.log"),
+}
+
+# === Logging format ===
+log_format = logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s")
+
+# === Set up handlers per log level ===
+info_handler = logging.FileHandler(LOG_FILES["info"])
+info_handler.setLevel(logging.INFO)
+info_handler.setFormatter(log_format)
+
+warning_handler = logging.FileHandler(LOG_FILES["warning"])
+warning_handler.setLevel(logging.WARNING)
+warning_handler.setFormatter(log_format)
+
+error_handler = logging.FileHandler(LOG_FILES["error"])
+error_handler.setLevel(logging.ERROR)
+error_handler.setFormatter(log_format)
+
+# === Attach handlers to root logger ===
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.INFO)
+root_logger.handlers = []  # Remove default handlers
+
+root_logger.addHandler(info_handler)
+root_logger.addHandler(warning_handler)
+root_logger.addHandler(error_handler)
+root_logger.addHandler(logging.StreamHandler())  # Also log to console
+
+# === Module-level logger ===
+logger = logging.getLogger(__name__)
+
+
+router = APIRouter(
+    prefix="/users",
+    tags=["users"],
+    responses={
+        200: {"description": "Success - Request was successful."},
+        201: {"description": "Created - Resource was successfully created."},
+        400: {
+            "description": "Bad Request - The request could not be understood or was missing required parameters."
+        },
+        401: {
+            "description": "Unauthorized - Authentication is required and has failed or not yet been provided."
+        },
+        403: {
+            "description": "Forbidden - The request was valid, but you do not have the necessary permissions."
+        },
+        404: {"description": "Not Found - The requested resource could not be found."},
+        409: {
+            "description": "Conflict - The request could not be completed due to a conflict with the current state of the resource."
+        },
+        422: {
+            "description": "Unprocessable Entity - The request was well-formed but could not be followed due to validation errors."
+        },
+        500: {
+            "description": "Internal Server Error - An unexpected server error occurred."
+        },
+    },
+)
+
+
+oauth = OAuth()
+
+oauth.register(
+    name="google",
+    client_id=env_config.google_client_id,
+    client_secret=env_config.google_client_secret,
+    authorize_url="https://accounts.google.com/o/oauth2/auth",
+    authorize_params=None,
+    access_token_url="https://accounts.google.com/o/oauth2/token",
+    access_token_params=None,
+    refresh_token_url=None,
+    redirect_uri=env_config.google_redirect_uri,
+    client_kwargs={"scope": "openid email profile"},
+    state=None,
+)
+
+oauth.register(
+    name="apple",
+    client_id=env_config.apple_client_id,
+    client_secret=env_config.apple_client_secret,
+    authorize_url="https://appleid.apple.com/auth/authorize",
+    access_token_url="https://appleid.apple.com/auth/token",
+    client_kwargs={"scope": "email name"},
+)
+
+
+# Password validation function
+def validate_password_strength(password: str):
+    """
+    Validates the strength of a password.
+
+    Password requirements:
+    - Must be at least eight (8) characters long.
+    - Must contain at least one uppercase letter.
+    - Must contain at least one lowercase letter.
+    - Must contain at least one digit.
+    - Must contain at least one special character, including underscores.
+
+    Raises:
+        HTTPException: If the password does not meet the criteria.
+    """
+    if len(password) < 8:
+        raise HTTPException(
+            status_code=400, detail="Password must be at least 8 characters long."
+        )
+    if not re.search(r"[A-Z]", password):
+        raise HTTPException(
+            status_code=400,
+            detail="Password must contain at least one uppercase letter.",
+        )
+    if not re.search(r"[a-z]", password):
+        raise HTTPException(
+            status_code=400,
+            detail="Password must contain at least one lowercase letter.",
+        )
+    if not re.search(r"\d", password):
+        raise HTTPException(
+            status_code=400, detail="Password must contain at least one digit."
+        )
+    if not re.search(r"[!@#$%^&*(),.?\":{}|<>_]", password):  # Allow underscores
+        raise HTTPException(
+            status_code=400,
+            detail="Password must contain at least one special character, including underscores.",
+        )
+
+
+# User Registration with JWT
+@router.post(
+    "/register",
+    response_model=TokenResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="User Registration with JWT",
+)
+async def user_registration(user_data: UserCreate, db: Session = Depends(get_db)):
+    """
+    Handles user registration by creating entries in both the `users` and `user_profiles` tables.
+
+    Args:
+        user_data (UserCreate): The user registration data.
+        db (Session): The database session.
+
+    Returns:
+        TokenResponse: The JWT access token for the registered user.
+    """
+    try:
+        # Normalize email and username
+        normalized_email = user_data.email.lower()
+        normalized_username = user_data.username.lower()
+
+        # Check if email is already registered
+        existing_user = (
+            db.query(User).filter(User.email.ilike(normalized_email)).first()
+        )
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered.",
+            )
+
+        # Check if username is already taken
+        existing_username = (
+            db.query(User).filter(User.username.ilike(normalized_username)).first()
+        )
+        if existing_username:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Username is already taken.",
+            )
+
+        # Validate password strength
+        validate_password_strength(user_data.password)
+
+        # Hash the password
+        hashed_password = hash_password(user_data.password)
+
+        # Generate OTP for email verification
+        otp = generate_random_otp()
+
+        # Create a new user in the `users` table
+        new_user = User(
+            username=normalized_username,
+            email=normalized_email,
+            hashed_password=hashed_password,
+            first_name=user_data.first_name,  # Assign first_name
+            last_name=user_data.last_name,  # Assign last_name
+            is_active=True,
+            is_verified=False,
+            is_admin=False,
+            is_super_admin=False,
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
+        )
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+
+        # Create a corresponding user profile in the `user_profiles` table
+        new_user_profile = UserProfile(
+            user_id=new_user.id,
+            profile_picture=user_data.profile_picture,
+            bio=user_data.bio,
+            linkedin=user_data.linkedin,
+            twitter=user_data.twitter,
+            nationality=user_data.nationality,
+            phone_number=user_data.phone_number,
+            gender=user_data.gender,
+            otp=otp,
+            otp_created_at=datetime.now(timezone.utc),
+        )
+        db.add(new_user_profile)
+        db.commit()
+
+        # Send verification email
+        await send_verification_email(normalized_email, user_data.first_name, otp)
+
+        # Generate JWT access token
+        access_token = create_access_token(
+            data={
+                "sub": new_user.email,
+                "user_name": new_user.first_name,
+                "user_id": new_user.id,
+                "is_verified": new_user.is_verified,
+                "role": "user",
+            }
+        )
+
+        return TokenResponse(access_token=access_token, token_type="bearer")
+
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Database error during registration: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to register user due to a server error.",
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error during registration: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred during registration.",
+        )
+
+
+@router.get(
+    "/verify",
+    summary="Verify User Email with OTP via Link",
+    response_model=dict,
+)
+async def user_verification_via_link(
+    request: Request,  # Add request parameter to extract query parameters
+    db: Session = Depends(get_db),
+):
+    """
+    Verifies a user's email using the link sent to their email with the OTP.
+
+    ### Response:
+    - A success message confirming user verification.
+    - A message notifying if the user is already verified.
+
+    ### Raises:
+    - `404 Not Found`: If the user is not found.
+    - `400 Bad Request`: If the OTP is invalid or expired.
+    """
+    # Extract email and OTP from query parameters
+    email = request.query_params.get("email")
+    otp = request.query_params.get("otp")
+
+    if not email or not otp:
+        raise HTTPException(
+            status_code=400,
+            detail="Email and OTP are required for verification.",
+        )
+
+    # Normalize email
+    normalized_email = normalize_input(email)
+
+    # Fetch the user by email
+    user = db.query(User).filter(User.email == normalized_email).first()
+
+    if not user:
+        logger.warning(
+            f"Verification attempt for non-existent email: {normalized_email}"
+        )
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Check if the user is already verified
+    if user.is_verified:
+        logger.info(f"User {normalized_email} is already verified.")
+        return {"message": "This account is already verified."}
+
+    # Check if OTP is valid
+    if user.otp != otp:
+        logger.warning(f"Invalid OTP attempt for email: {normalized_email}")
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+
+    # Check if OTP is expired
+    if user.otp_created_at:
+        time_since_otp = datetime.now(timezone.utc) - user.otp_created_at
+        if time_since_otp.total_seconds() > 86400:  # 24 hours
+            logger.warning(f"Expired OTP attempt for email: {normalized_email}")
+            raise HTTPException(
+                status_code=400,
+                detail="OTP has expired. Please request a new verification email.",
+            )
+
+    # Mark user as verified
+    user.is_verified = True
+    user.otp = None
+    user.otp_created_at = None  # Clear the OTP timestamp after successful verification
+    db.commit()
+
+    # Optionally send a confirmation email
+    try:
+        await send_confirmation_email(user.email, user.first_name)
+        logger.info(f"User {normalized_email} verified successfully")
+    except Exception as email_error:
+        logger.error(
+            f"Failed to send confirmation email to {normalized_email}: {email_error}"
+        )
+
+    return {"message": "User verified successfully"}
+
+
+THROTTLE_DURATION_SECONDS = 300  # Configurable throttle duration
+
+
+@router.post(
+    "/resend-verification-email",
+    summary="Resends the verification email to ease account verification at the user's convenience",
+    response_model=dict,
+)
+async def resend_verification_email(
+    email: str = Body(..., embed=True),
+    db: Session = Depends(get_db),
+):
+    """
+    Resends the verification email to the user's email address.
+
+    ### Parameters:
+    - `email` (str): The email address of the user requesting a new verification email.
+
+    ### Response:
+    - A success message confirming the resend of the verification email.
+    - A message notifying if the user is already verified.
+
+    ### Raises:
+    - `404 Not Found`: If no user is found with the provided email.
+    - `400 Bad Request`: If the user is already verified.
+    - `429 Too Many Requests`: If the user attempts to resend emails too frequently.
+    """
+    normalized_email = normalize_input(email)
+
+    # Fetch user by email
+    user = db.query(User).filter(User.email == normalized_email).first()
+    if not user:
+        logger.warning(f"Resend verification attempt for non-existent email: {email}")
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if user.is_verified:
+        logger.info(f"User {email} is already verified.")
+        return {"message": f"The account associated with {email} is already verified."}
+
+    # Enforce throttle limit
+    if user.otp_created_at:
+        time_since_last_otp = datetime.now(timezone.utc) - user.otp_created_at
+        if time_since_last_otp.total_seconds() < THROTTLE_DURATION_SECONDS:
+            next_allowed_request = user.otp_created_at + timedelta(
+                seconds=THROTTLE_DURATION_SECONDS
+            )
+            logger.warning(f"Verification email resend throttled for email={email}")
+            return JSONResponse(
+                status_code=429,
+                content={
+                    "message": "Please wait before requesting another verification email.",
+                    "next_allowed_request": next_allowed_request.isoformat(),
+                },
+            )
+
+    # Generate a new OTP and update the user record
+    otp = generate_random_otp()
+    user.otp = otp
+    user.otp_created_at = datetime.now(timezone.utc)
+    db.commit()
+
+    # Send the verification email
+    try:
+        await send_verification_email(user.email, user.first_name, otp)
+        logger.info(f"Verification email resent to email={email}")
+    except Exception as email_error:
+        logger.error(
+            f"Failed to send verification email to email={email}: {email_error}"
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to send verification email. Please try again later.",
+        )
+
+    return {"message": f"Verification email has been resent to {email}."}
+
+
+@router.post("/login", summary="Login via Username or Email")
+async def user_login(
+    user_identifier: str = Body(..., embed=True, description="Email or username"),
+    password: str = Body(..., embed=True, description="User password"),
+    db: Session = Depends(get_db),
+):
+    # Normalize input to lowercase
+    normalized_user_identifier = normalize_input(user_identifier)
+
+    # Identify user by email or username
+    if "@" in normalized_user_identifier and "." in normalized_user_identifier:
+        db_user = (
+            db.query(User).filter(User.email == normalized_user_identifier).first()
+        )
+    else:
+        db_user = (
+            db.query(User)
+            .filter(User.username.ilike(normalized_user_identifier))
+            .first()
+        )
+
+    if not db_user or not verify_password(password, db_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The provided credentials are incorrect",
+        )
+
+    if db_user.is_deleted:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This account has been deleted. Contact support for recovery.",
+        )
+
+    # Determine the role based on boolean fields
+    role = (
+        "super_admin"
+        if db_user.is_super_admin
+        else "admin" if db_user.is_admin else "author" if db_user.is_author else "user"
+    )
+
+    # 🔥 Generate Access Token (Valid for 24 Hours)
+    access_token = create_access_token(
+        data={
+            "sub": db_user.email,
+            "user_name": db_user.first_name,
+            "user_id": db_user.id,
+            "is_verified": db_user.is_verified,
+            "profile_picture": db_user.profile_picture,
+            "role": role,
+        }
+    )
+
+    # 🔥 Generate Refresh Token (Valid for 7 Days)
+    refresh_token = create_refresh_token({"sub": db_user.email})
+
+    # Response with Access Token + Secure Refresh Token in Cookie
+    response = JSONResponse(
+        {
+            "access_token": access_token,
+            "token_type": env_config.token_type,
+            "user": {
+                "id": db_user.id,
+                "name": db_user.first_name,
+                "role": role,
+                "email": db_user.email,
+                "is_verified": db_user.is_verified,
+                "profile_picture": db_user.profile_picture,
+            },
+        }
+    )
+
+    # Set the Refresh Token in Secure HTTP-Only Cookie
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,  # Prevents JavaScript access (mitigates XSS attacks)
+        samesite="Strict",
+        max_age=7 * 24 * 60 * 60,  # 7 Days Expiry
+    )
+
+    return response
+
+
+@router.post("/forgot-password", summary="Request Password Reset")
+async def forgot_password(
+    response: Response,  # Added Response for setting cookies
+    email: str = Body(..., embed=True),
+    db: Session = Depends(get_db),
+):
+    """
+    Allows a user to request a password reset by generating a reset link and sending it to their email.
+
+    - **Stores OTP in an HTTP-only cookie** to prevent abuse.
+    - **Prevents multiple resets within a cooldown period**.
+    - **Ensures OTP expires after 24 hours**.
+
+    ### Request:
+    - `email` (str): The user's email address.
+
+    ### Response:
+    - A message confirming that a password reset link has been sent to the user's email.
+
+    ### Raises:
+    - `404 Not Found`: If the user is not found.
+    - `400 Bad Request`: If an OTP was requested too recently.
+    """
+    # Normalize email
+    normalized_email = normalize_input(email)
+
+    # Retrieve user by email
+    user = db.query(User).filter(User.email == normalized_email).first()
+
+    if not user:
+        logger.warning(
+            f"Password reset requested for non-existent email: {normalized_email}"
+        )
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Check if OTP already exists and is still valid
+    current_time = datetime.now(timezone.utc)
+    if user.otp and user.otp_created_at:
+        time_since_last_request = (current_time - user.otp_created_at).total_seconds()
+
+        # If OTP is still valid (within 24 hours), resend the same OTP
+        if time_since_last_request < 86400:  # 24 hours
+            logger.info(f"Resending existing OTP for {normalized_email} (Still valid).")
+            otp = user.otp
+        else:
+            # OTP expired - generate a new one
+            otp = generate_random_otp()
+            user.otp = otp
+            user.otp_created_at = current_time  # Store OTP creation time
+            db.commit()
+    else:
+        # No OTP exists - generate a new one
+        otp = generate_random_otp()
+        user.otp = otp
+        user.otp_created_at = current_time  # Store OTP creation time
+        db.commit()
+
+    # Set an HTTP-only cookie to prevent abuse
+    response.set_cookie(
+        key="password_reset_token",
+        value=otp,
+        httponly=True,  # Prevent JavaScript access
+        secure=True,  # Enforce HTTPS
+        max_age=86400,  # 24 hours expiration
+        samesite="Lax",
+    )
+
+    # Send OTP via email
+    await send_password_reset_email(normalized_email, user.first_name, otp)
+    logger.info(f"Password reset link sent to {normalized_email}")
+
+    return {"message": "Password reset link sent to your email address."}
+
+
+@router.post("/request-password-reset", summary="Request Password Reset")
+async def request_password_reset(
+    response: Response,  # Added Response for setting cookies
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Allows a logged-in user to request a password reset by generating and sending a password reset link.
+
+    - **Stores OTP in an HTTP-only cookie** to prevent abuse.
+    - **Prevents multiple resets by setting a cooldown period**.
+    - **Sends an email with the reset link**.
+
+    ### Response:
+    - A message confirming that a password reset link has been sent to the user's email.
+    """
+    logger.info(f"Password reset request for {current_user.email}")
+
+    # Generate a secure OTP
+    otp = generate_random_otp()
+    current_user.otp = otp
+    current_user.otp_created_at = datetime.now(timezone.utc)  # Track OTP creation time
+    db.commit()
+
+    # Set an HTTP-only cookie to prevent abuse
+    response.set_cookie(
+        key="password_reset_token",
+        value=otp,
+        httponly=True,  # Prevent JavaScript access
+        secure=True,  # Enforce HTTPS
+        max_age=86400,  # 24 hours
+        samesite="Lax",
+    )
+
+    # Send password reset OTP via email
+    await send_password_reset_email(current_user.email, current_user.first_name, otp)
+    logger.info(f"Password reset link sent to {current_user.email}")
+
+    return {"message": "Password reset link sent to your email address."}
+
+
+@router.post("/confirm-password-reset", summary="Confirm Password Reset with OTP")
+async def confirm_password_reset(
+    payload: PasswordResetConfirmation,
+    db: Session = Depends(get_db),
+):
+    """
+    Allows users to reset their password using an OTP, without being signed in.
+
+    ### Request Body (JSON):
+    - `email` (str): The user's email address.
+    - `otp` (str): The OTP sent to the user's email.
+    - `new_password` (str): The new password for the user.
+    - `confirm_new_password` (str): Confirmation of the new password.
+
+    ### Response:
+    - A message confirming the successful password reset.
+
+    ### Raises:
+    - `400 Bad Request`: If the OTP is invalid, the passwords do not match, or the email is not provided.
+    """
+    # Validate the email and fetch the user
+    user = (
+        db.query(User)
+        .filter(User.email == payload.email, User.otp == payload.otp)
+        .first()
+    )
+
+    if not user:
+        logger.warning(
+            f"""
+            Password reset failed for email {
+                payload.email} due to invalid OTP or email.
+            """
+        )
+        raise HTTPException(status_code=400, detail="Invalid email or OTP")
+
+    # Validate the OTP
+    if user.otp != payload.otp:
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+
+    # Validate if the new passwords match
+    if payload.new_password != payload.confirm_new_password:
+        raise HTTPException(status_code=400, detail="Passwords do not match")
+
+    # Validate password strength
+    validate_password_strength(payload.new_password)
+
+    # Update the user's password
+    user.hashed_password = hash_password(payload.new_password)
+    user.otp = None  # Clear OTP after successful reset
+    db.commit()
+
+    # Send confirmation email
+    try:
+        await send_password_reset_confirmation_email(user.email, user.first_name)
+    except Exception as email_error:
+        logger.error(f"Failed to send password reset confirmation email: {email_error}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to send password reset confirmation email.",
+        ) from email_error
+
+    logger.info(f"Password reset successfully for {user.email}")
+    return {
+        "message": "Password successfully reset. You can now log in with your new password."
+    }
+
+
+@router.get("/reset-password-link", summary="Redirect Reset Link to Frontend")
+async def redirect_reset_link(
+    request: Request, response: Response, db: Session = Depends(get_db)
+):
+    """
+    Redirects the user to the frontend reset password page.
+
+    - **Requires email and OTP in query parameters.**
+    - **Stores OTP in an HTTP-only cookie to prevent abuse.**
+    - **Frontend should extract these values and call `/submit-reset-password`.**
+    """
+
+    # Extract email and OTP from query parameters
+    email = request.query_params.get("email")
+    otp = request.query_params.get("otp")
+
+    if not email or not otp:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email and OTP are required in the reset link.",
+        )
+
+    # Retrieve user from DB
+    user = db.query(User).filter(User.email == email, User.otp == otp).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Invalid email or OTP."
+        )
+
+    # Check if OTP has expired
+    if user.otp_created_at:
+        otp_expiration_time = user.otp_created_at + timedelta(hours=24)
+        if datetime.now(timezone.utc) > otp_expiration_time:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="This password reset link has expired. Please request a new reset link.",
+            )
+
+    # ✅ Store OTP in an HTTP-only cookie for security
+    response.set_cookie(
+        key="password_reset_token",
+        value=otp,
+        httponly=True,  # Prevent JavaScript access
+        secure=True,  # Enforce HTTPS
+        max_age=86400,  # 24 hours expiration
+        samesite="Lax",
+    )
+
+    # ✅ Redirect to frontend reset page
+    # frontend_reset_url = (
+    #     f"{settings.FRONTEND_BASE_ADDRESS}/reset-password?email={email}"
+    # )
+    # return RedirectResponse(url=frontend_reset_url)
+
+
+@router.post("/submit-reset-password", summary="Submit New Password")
+async def submit_reset_password(
+    request: Request,
+    payload: PasswordUpdateSchema,  # Replace with a validated schema
+    db: Session = Depends(get_db),
+):
+    """
+    Submits a new password after the user is redirected to the frontend.
+
+    - **Ensures OTP cookie is present and matches stored OTP.**
+    - **Updates password only if OTP is valid and unexpired.**
+    """
+
+    # Extract email from query parameters
+    email = request.query_params.get("email")
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email is required in the reset request.",
+        )
+
+    # Retrieve OTP from HTTP-only cookie
+    otp_from_cookie = request.cookies.get("password_reset_token")
+    if not otp_from_cookie:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Unauthorized request. Missing OTP cookie.",
+        )
+
+    # Retrieve user from DB
+    user = (
+        db.query(User).filter(User.email == email, User.otp == otp_from_cookie).first()
+    )
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Invalid email or OTP."
+        )
+
+    # Check if OTP has expired
+    if user.otp_created_at:
+        otp_expiration_time = user.otp_created_at + timedelta(hours=24)
+        if datetime.now(timezone.utc) > otp_expiration_time:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="This password reset link has expired. Please request a new reset link.",
+            )
+
+    # ✅ Update the user's password
+    user.hashed_password = hash_password(payload.new_password)
+    user.otp = None  # Clear OTP after successful reset
+    user.otp_created_at = None
+    db.commit()
+
+    # Send confirmation email
+    await send_password_reset_confirmation_email(user.email, user.first_name)
+
+    return {
+        "message": "Password successfully reset. You can now log in with your new password."
+    }
+
+
+# Helper function to remove the old profile picture
+def remove_old_profile_picture(file_path: str):
+    """
+    Removes the old profile picture from the file system.
+
+    Args:
+    - file_path (str): Path of the file to be deleted.
+    """
+    if file_path and os.path.exists(file_path):
+        os.remove(file_path)
+
+
+# User login route
+@router.get(
+    "/profile",
+    response_model=UserProfileResponse,
+    summary="Get User Profile Information",
+)
+async def get_user_profile(current_user: User = Depends(get_current_user)):
+    """
+    Retrieve the profile information of the currently logged-in user.
+    """
+    logger.info(f"Profile request for user: {current_user.email}")
+    # Assuming `current_user.gender` might be None or a non-enum value
+    user_data = UserProfileResponse(
+        id=current_user.id,
+        email=current_user.email,
+        first_name=current_user.first_name,
+        last_name=current_user.last_name,
+        bio=current_user.bio,
+        username=current_user.username,
+        profile_picture=current_user.profile_picture,
+        nationality=current_user.nationality,
+        linkedin=current_user.linkedin,
+        twitter=current_user.twitter,
+        phone_number=current_user.phone_number,
+        gender=(
+            current_user.gender
+            if current_user.gender in Gender.__members__.values()
+            else None
+        ),
+        is_active=current_user.is_active,
+        is_verified=current_user.is_verified,
+        is_author=current_user.is_author,
+        is_admin=current_user.is_admin,
+        is_super_admin=current_user.is_super_admin,
+        created_at=current_user.created_at,
+        updated_at=current_user.updated_at,
+    )
+    return user_data
+
+
+@router.put(
+    "/profile/update",
+    response_model=UserProfileResponse,
+    summary="Update User Profile Information",
+)
+async def update_profile(
+    user_data: UserUpdate = Body(...),  # Expecting JSON data for profile updates
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Allows the user to update their profile information in both `users` and `user_profiles` tables.
+
+    ### Parameters:
+    - `user_data` (JSON Body): Contains fields like `email`, `first_name`, `last_name`, `linkedin`, `twitter`, and `profile_picture_url` (if changed).
+
+    ### Response:
+    - The updated user profile data.
+    """
+    logger.info(f"User {current_user.email} is attempting to update their profile.")
+
+    try:
+        refresh_needed = False  # Track if a token refresh is required
+
+        # ✅ Update fields in the `users` table
+        if user_data.email and user_data.email.lower() != current_user.email:
+            normalized_email = user_data.email.lower()
+            existing_user = (
+                db.query(User).filter(User.email == normalized_email).first()
+            )
+            if existing_user and existing_user.id != current_user.id:
+                raise HTTPException(status_code=400, detail="Email already in use")
+            current_user.email = normalized_email
+            refresh_needed = True  # Email affects authentication
+
+        if user_data.first_name and user_data.first_name != current_user.first_name:
+            current_user.first_name = user_data.first_name
+            refresh_needed = True  # Name change requires new JWT
+
+        if user_data.last_name and user_data.last_name != current_user.last_name:
+            current_user.last_name = user_data.last_name
+            refresh_needed = True  # Name change requires new JWT
+
+        # ✅ Update fields in the `user_profiles` table
+        user_profile = (
+            db.query(UserProfile).filter(UserProfile.user_id == current_user.id).first()
+        )
+        if not user_profile:
+            raise HTTPException(status_code=404, detail="User profile not found.")
+
+        if user_data.bio:
+            user_profile.bio = user_data.bio
+        if user_data.nationality:
+            user_profile.nationality = user_data.nationality
+        if user_data.phone_number:
+            user_profile.phone_number = user_data.phone_number
+        if user_data.linkedin:
+            user_profile.linkedin = user_data.linkedin
+        if user_data.twitter:
+            user_profile.twitter = user_data.twitter
+        if user_data.gender:
+            user_profile.gender = user_data.gender
+
+        # ✅ Handle Profile Picture URL (frontend handles actual image upload)
+        if user_data.profile_picture:
+            user_profile.profile_picture = (
+                user_data.profile_picture
+            )  # Store the image URL
+
+        # ✅ Update `updated_at` timestamp for both tables
+        current_user.updated_at = datetime.now(timezone.utc)
+        user_profile.updated_at = datetime.now(timezone.utc)
+
+        # Commit changes to database
+        db.commit()
+        db.refresh(current_user)
+        db.refresh(user_profile)
+
+        logger.info(f"Profile updated successfully for user: {current_user.email}")
+
+        # ✅ Return success response
+        return UserProfileResponse.model_validate(user_profile)
+
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Database error during profile update: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update profile due to a server error.",
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error during profile update: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred during profile update.",
+        )
