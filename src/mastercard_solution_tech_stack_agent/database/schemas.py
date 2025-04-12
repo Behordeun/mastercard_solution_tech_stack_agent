@@ -121,8 +121,6 @@ class UserProfile(Base):
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     profile_picture = Column(String, nullable=True)
-    first_name = Column(String(100), nullable=False)
-    last_name = Column(String(100), nullable=False)
     bio = Column(Text, nullable=True)
     linkedin = Column(String(255), nullable=True)
     twitter = Column(String(255), nullable=True)

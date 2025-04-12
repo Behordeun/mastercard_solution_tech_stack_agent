@@ -21,7 +21,6 @@ from src.mastercard_solution_tech_stack_agent.api.auth import (
     verify_password,
 )
 from src.mastercard_solution_tech_stack_agent.api.schemas import (
-    Gender,
     PasswordResetConfirmation,
     PasswordUpdateSchema,
     TokenResponse,
@@ -227,15 +226,15 @@ async def user_registration(user_data: UserCreate, db: Session = Depends(get_db)
         # Generate OTP for email verification
         otp = generate_random_otp()
 
-        # Use a transaction to ensure ACID compliance
-        with db.begin():
+        # Use a nested transaction to ensure ACID compliance
+        with db.begin_nested():
             # Create a new user in the `users` table
             new_user = User(
                 username=normalized_username,
                 email=normalized_email,
                 hashed_password=hashed_password,
-                first_name=user_data.first_name,  # Assign first_name
-                last_name=user_data.last_name,  # Assign last_name
+                first_name=user_data.first_name,
+                last_name=user_data.last_name,
                 is_active=True,
                 is_verified=False,
                 is_admin=False,
@@ -260,6 +259,9 @@ async def user_registration(user_data: UserCreate, db: Session = Depends(get_db)
                 otp_created_at=datetime.now(timezone.utc),
             )
             db.add(new_user_profile)
+
+        # Explicitly commit the transaction
+        db.commit()
 
         # Send verification email
         await send_verification_email(normalized_email, user_data.first_name, otp)
@@ -297,7 +299,7 @@ async def user_registration(user_data: UserCreate, db: Session = Depends(get_db)
     response_model=dict,
 )
 async def user_verification_via_link(
-    request: Request,  # Add request parameter to extract query parameters
+    request: Request,
     db: Session = Depends(get_db),
 ):
     """
@@ -322,7 +324,7 @@ async def user_verification_via_link(
         )
 
     # Normalize email
-    normalized_email = normalize_input(email)
+    normalized_email = email.lower().strip()
 
     # Fetch the user by email
     user = db.query(User).filter(User.email == normalized_email).first()
@@ -333,19 +335,28 @@ async def user_verification_via_link(
         )
         raise HTTPException(status_code=404, detail="User not found")
 
+    # Fetch the user's profile to get the OTP and OTP creation time
+    user_profile = db.query(UserProfile).filter(UserProfile.user_id == user.id).first()
+
+    if not user_profile:
+        logger.warning(
+            f"Verification attempt for user without a profile: {normalized_email}"
+        )
+        raise HTTPException(status_code=404, detail="User profile not found")
+
     # Check if the user is already verified
     if user.is_verified:
         logger.info(f"User {normalized_email} is already verified.")
         return {"message": "This account is already verified."}
 
     # Check if OTP is valid
-    if user.otp != otp:
+    if user_profile.otp != otp:
         logger.warning(f"Invalid OTP attempt for email: {normalized_email}")
         raise HTTPException(status_code=400, detail="Invalid OTP")
 
     # Check if OTP is expired
-    if user.otp_created_at:
-        time_since_otp = datetime.now(timezone.utc) - user.otp_created_at
+    if user_profile.otp_created_at:
+        time_since_otp = datetime.now(timezone.utc) - user_profile.otp_created_at
         if time_since_otp.total_seconds() > 86400:  # 24 hours
             logger.warning(f"Expired OTP attempt for email: {normalized_email}")
             raise HTTPException(
@@ -355,8 +366,10 @@ async def user_verification_via_link(
 
     # Mark user as verified
     user.is_verified = True
-    user.otp = None
-    user.otp_created_at = None  # Clear the OTP timestamp after successful verification
+    user_profile.otp = None
+    user_profile.otp_created_at = (
+        None  # Clear the OTP timestamp after successful verification
+    )
     db.commit()
 
     # Optionally send a confirmation email
@@ -454,28 +467,41 @@ async def user_login(
     password: str = Body(..., embed=True, description="User password"),
     db: Session = Depends(get_db),
 ):
+    """
+    Allows users to log in using either their email or username.
+
+    Args:
+        user_identifier (str): The email or username of the user.
+        password (str): The user's password.
+        db (Session): The database session.
+
+    Returns:
+        JSONResponse: Access token, refresh token, and user details.
+    """
+    logger.info(f"Login attempt by user: {user_identifier}")
+
     # Normalize input to lowercase
     normalized_user_identifier = normalize_input(user_identifier)
 
     # Identify user by email or username
-    if "@" in normalized_user_identifier and "." in normalized_user_identifier:
-        db_user = (
-            db.query(User).filter(User.email == normalized_user_identifier).first()
+    db_user = (
+        db.query(User)
+        .filter(
+            (User.email == normalized_user_identifier)
+            | (User.username.ilike(normalized_user_identifier))
         )
-    else:
-        db_user = (
-            db.query(User)
-            .filter(User.username.ilike(normalized_user_identifier))
-            .first()
-        )
+        .first()
+    )
 
     if not db_user or not verify_password(password, db_user.hashed_password):
+        logger.warning("Invalid login credentials.")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="The provided credentials are incorrect",
         )
 
     if db_user.is_deleted:
+        logger.warning(f"Login attempt on deleted account: {db_user.email}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="This account has been deleted. Contact support for recovery.",
@@ -485,7 +511,7 @@ async def user_login(
     role = (
         "super_admin"
         if db_user.is_super_admin
-        else "admin" if db_user.is_admin else "author" if db_user.is_author else "user"
+        else "admin" if db_user.is_admin else "user"
     )
 
     # 🔥 Generate Access Token (Valid for 24 Hours)
@@ -528,6 +554,7 @@ async def user_login(
         max_age=7 * 24 * 60 * 60,  # 7 Days Expiry
     )
 
+    logger.info(f"User {db_user.email} logged in successfully.")
     return response
 
 
@@ -848,37 +875,51 @@ def remove_old_profile_picture(file_path: str):
     response_model=UserProfileResponse,
     summary="Get User Profile Information",
 )
-async def get_user_profile(current_user: User = Depends(get_current_user)):
+async def get_user_profile(
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
     """
     Retrieve the profile information of the currently logged-in user.
+
+    Combines data from the User model and the UserProfile model.
     """
     logger.info(f"Profile request for user: {current_user.email}")
-    # Assuming `current_user.gender` might be None or a non-enum value
+
+    # Fetch the user's profile from the UserProfile table
+    user_profile = (
+        db.query(UserProfile).filter(UserProfile.user_id == current_user.id).first()
+    )
+
+    if not user_profile:
+        logger.error(f"User profile not found for user: {current_user.email}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User profile not found.",
+        )
+
+    # Construct the response using both User and UserProfile data
     user_data = UserProfileResponse(
         id=current_user.id,
+        username=current_user.username,
         email=current_user.email,
         first_name=current_user.first_name,
         last_name=current_user.last_name,
-        bio=current_user.bio,
-        username=current_user.username,
-        profile_picture=current_user.profile_picture,
-        nationality=current_user.nationality,
-        linkedin=current_user.linkedin,
-        twitter=current_user.twitter,
-        phone_number=current_user.phone_number,
-        gender=(
-            current_user.gender
-            if current_user.gender in Gender.__members__.values()
-            else None
-        ),
         is_active=current_user.is_active,
         is_verified=current_user.is_verified,
-        is_author=current_user.is_author,
         is_admin=current_user.is_admin,
         is_super_admin=current_user.is_super_admin,
         created_at=current_user.created_at,
         updated_at=current_user.updated_at,
+        # Fields from UserProfile
+        profile_picture=user_profile.profile_picture,
+        bio=user_profile.bio,
+        nationality=user_profile.nationality,
+        linkedin=user_profile.linkedin,
+        twitter=user_profile.twitter,
+        phone_number=user_profile.phone_number,
+        gender=user_profile.gender,
     )
+
     return user_data
 
 
@@ -951,9 +992,7 @@ async def update_profile(
 
             # ✅ Handle Profile Picture URL (frontend handles actual image upload)
             if user_data.profile_picture:
-                user_profile.profile_picture = (
-                    user_data.profile_picture
-                )  # Store the image URL
+                user_profile.profile_picture = user_data.profile_picture
 
             # ✅ Update `updated_at` timestamp for both tables
             current_user.updated_at = datetime.now(timezone.utc)
@@ -969,7 +1008,26 @@ async def update_profile(
         logger.info(f"Profile updated successfully for user: {current_user.email}")
 
         # ✅ Return success response
-        return UserProfileResponse.model_validate(user_profile)
+        return UserProfileResponse(
+            id=current_user.id,
+            username=current_user.username,
+            email=current_user.email,
+            first_name=current_user.first_name,
+            last_name=current_user.last_name,
+            is_active=current_user.is_active,
+            is_verified=current_user.is_verified,
+            is_admin=current_user.is_admin,
+            is_super_admin=current_user.is_super_admin,
+            created_at=current_user.created_at,
+            updated_at=current_user.updated_at,
+            profile_picture=user_profile.profile_picture,
+            bio=user_profile.bio,
+            nationality=user_profile.nationality,
+            linkedin=user_profile.linkedin,
+            twitter=user_profile.twitter,
+            phone_number=user_profile.phone_number,
+            gender=user_profile.gender,
+        )
 
     except SQLAlchemyError as e:
         logger.error(f"Database error during profile update: {e}")

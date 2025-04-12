@@ -15,10 +15,10 @@ from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from src.mastercard_solution_tech_stack_agent.api import (
     admin,
     auth,
-    route,
     logs_router,
+    route,
     super_admin,
-    users
+    users,
 )
 from src.mastercard_solution_tech_stack_agent.config import settings
 from src.mastercard_solution_tech_stack_agent.config.appconfig import env_config
@@ -124,7 +124,7 @@ templates = Jinja2Templates(
 # === Serve frontend ===
 @app.get("/", response_class=HTMLResponse)
 async def serve_ui(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse("homepage.html", {"request": request})
 
 
 # === Global Exception Logging ===

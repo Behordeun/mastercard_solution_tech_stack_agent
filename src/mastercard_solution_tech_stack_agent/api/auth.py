@@ -442,7 +442,14 @@ async def login_for_access_token(
         return response
 
     # Regular user login
-    user = db.query(User).filter(User.email == normalized_identifier).first()
+    user = (
+        db.query(User)
+        .filter(
+            (User.email == normalized_identifier)
+            | (User.username == normalized_identifier)
+        )
+        .first()
+    )
 
     if not user or not verify_password(form_data.password, user.hashed_password):
         logger.warning("Invalid login credentials.")
