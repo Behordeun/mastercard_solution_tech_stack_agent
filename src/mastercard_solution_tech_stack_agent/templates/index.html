@@ -2,19 +2,27 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Solution Architect - Tech Stack Agent</title>
   <link rel="stylesheet" href="/static/css/style.css" />
 </head>
-<body>
+<body data-page="chat">
+  <!-- Chat Container -->
   <div class="chat-container">
     <div class="chat-header">Solution Architect - Tech Stack Agent</div>
-    <div id="pillar-banner"></div>
-    <div class="chat-box" id="chat-box"></div>
+    <div id="pillar-banner" class="pillar-banner"></div>
+    <div class="chat-box" id="chat-box">
+      <p>Welcome to the Tech Stack Agent! Start typing to begin your conversation.</p>
+    </div>
     <div class="chat-input-container">
-      <input type="text" id="user-input" class="chat-input" placeholder="Type your message..." onkeypress="handleKeyPress(event)">
+      <input
+        type="text"
+        id="user-input"
+        class="chat-input"
+        placeholder="Type your message..."
+        onkeypress="handleKeyPress(event)"
+      />
       <button class="send-btn" onclick="sendMessage()">Send</button>
-      <!-- Reset Button -->
       <button class="reset-btn" onclick="resetChat()">Reset Chat</button>
     </div>
   </div>

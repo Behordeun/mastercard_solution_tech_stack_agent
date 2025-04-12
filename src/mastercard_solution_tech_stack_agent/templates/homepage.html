@@ -1,0 +1,42 @@
+<!-- filepath: /Users/muhammad/Documents/DevProjects/DSN/agentic_ais/mastercard_solution_tech_stack_agent/src/mastercard_solution_tech_stack_agent/templates/homepage.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Home - Tech Stack Agent</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body data-page="homepage">
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/chat">Chat</a></li>
+      <li><a href="/login">Login</a></li>
+      <li><a href="/signup">Signup</a></li>
+      <li><a href="/profile">Profile</a></li>
+      <li><a href="/password-reset">Reset Password</a></li>
+    </ul>
+  </nav>
+
+  <!-- Welcome Section -->
+  <div class="welcome-container">
+    <h1>Welcome to the Tech Stack Agent</h1>
+    <p>Your AI-powered assistant for all things tech stack-related.</p>
+    <button class="start-chat-btn" onclick="startChat()">Start Chat</button>
+  </div>
+
+  <script>
+    function startChat() {
+      const isLoggedIn = localStorage.getItem("access_token"); // Check if the user is logged in
+      if (!isLoggedIn) {
+        alert("Please log in to start chatting.");
+        window.location.href = "/login"; // Redirect to the login page
+      } else {
+        window.location.href = "/chat"; // Redirect to the chat page
+      }
+    }
+  </script>
+</body>
+</html>
