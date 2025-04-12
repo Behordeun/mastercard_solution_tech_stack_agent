@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chat - Tech Stack Agent</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body data-page="chat">
+  <div class="chat-container">
+    <div class="chat-header">
+      <h2>Solution Architect - Tech Stack Agent</h2>
+    </div>
+    <div id="pillar-banner" class="pillar-banner"></div>
+    <div id="chat-box" class="chat-box">
+      <p>Welcome to the Tech Stack Agent! Start typing to begin your conversation.</p>
+    </div>
+    <div class="chat-input-container">
+      <input
+        type="text"
+        id="user-input"
+        class="chat-input"
+        placeholder="Type your message..."
+        onkeypress="handleKeyPress(event)"
+      />
+      <button class="send-btn" onclick="sendMessage()">Send</button>
+      <button class="reset-btn" onclick="resetChat()">Reset Chat</button>
+    </div>
+  </div>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

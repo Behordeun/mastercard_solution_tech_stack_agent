@@ -1,0 +1,38 @@
+<!-- filepath: /src/mastercard_solution_tech_stack_agent/templates/profile.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Profile - Tech Stack Agent</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+  <div class="profile-container">
+    <h2>Your Profile</h2>
+    <form action="/api/v1/users/profile/update" method="POST">
+      <label for="first_name">First Name:</label>
+      <input type="text" id="first_name" name="first_name" value="{{ first_name }}" required />
+      
+      <label for="last_name">Last Name:</label>
+      <input type="text" id="last_name" name="last_name" value="{{ last_name }}" required />
+      
+      <label for="email">Email:</label>
+      <input type="email" id="email" name="email" value="{{ email }}" required />
+      
+      <label for="bio">Bio:</label>
+      <textarea id="bio" name="bio">{{ bio }}</textarea>
+      
+      <label for="linkedin">LinkedIn:</label>
+      <input type="url" id="linkedin" name="linkedin" value="{{ linkedin }}" />
+      
+      <label for="twitter">Twitter:</label>
+      <input type="url" id="twitter" name="twitter" value="{{ twitter }}" />
+      
+      <button type="submit" class="form-btn">Update Profile</button>
+    </form>
+    <p><a href="/">Back to Home</a></p>
+  </div>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
