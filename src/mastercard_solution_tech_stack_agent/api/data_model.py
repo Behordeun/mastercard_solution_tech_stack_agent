@@ -5,16 +5,16 @@ from pydantic import BaseModel, EmailStr, Field
 
 
 class Chat_Message(BaseModel):
-    id: Optional[Union[str, int]] = None
-    roomId: str  # ✅ Add this
+    id: Optional[Union[int, int]] = None
+    roomId: int  # ✅ Add this
     message: str
 
     class Config:
         use_enum_values = True
         json_schema_extra = {
             "example": {
-                "id": "18",
-                "roomId": "abc123",
+                "id": 18,
+                "roomId": 10,
                 "message": "Hello",
             }
         }

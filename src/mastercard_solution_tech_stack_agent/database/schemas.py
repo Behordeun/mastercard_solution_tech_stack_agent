@@ -35,7 +35,7 @@ class ConversationHistory(Base):
     __tablename__ = "conversation_history"
 
     id = Column(Integer, primary_key=True)
-    room_id = Column(String, index=True)
+    room_id = Column(Integer, index=True)
     user_id = Column(
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )  # Link to User
@@ -51,7 +51,7 @@ class ChatLog(Base):
     __tablename__ = "chat_logs"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    room_id = Column(String(100), nullable=False)
+    room_id = Column(Integer, nullable=False)
     user_id = Column(
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )  # Link to User
@@ -68,7 +68,7 @@ class ChatLog(Base):
 class AgentSession(Base):
     __tablename__ = "agent_sessions"
 
-    room_id = Column(String, primary_key=True)
+    room_id = Column(Integer, primary_key=True)
     project_context = Column(JSON, default={})
     asked_questions = Column(JSON, default=[])
     updated_at = Column(

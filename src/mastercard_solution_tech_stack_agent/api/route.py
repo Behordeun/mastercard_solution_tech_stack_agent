@@ -159,7 +159,7 @@ async def chat(
 
 @router.get("/chat-history", response_model_exclude_unset=True)
 async def get_chat_history(
-    room_id: str,
+    room_id: int,
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],  # Use User model
 ):

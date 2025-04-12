@@ -27,7 +27,7 @@ def get_db() -> Generator[Session, None, None]:
 
 # ✅ Conversation Insertion
 def insert_conversation(
-    db: Session, ai_message: str, room_id: str, user_id: int, user_message: str = ""
+    db: Session, ai_message: str, room_id: int, user_id: int, user_message: str = ""
 ):
     """
     Insert a new conversation into the database.
@@ -35,7 +35,7 @@ def insert_conversation(
     Args:
         db (Session): SQLAlchemy database session.
         ai_message (str): The AI's initial message.
-        room_id (str): The room ID for the conversation.
+        room_id (int): The room ID for the conversation.
         user_id (int): The ID of the user associated with the conversation.
         user_message (str): The user's initial message (default: "").
 
@@ -58,14 +58,14 @@ def insert_conversation(
 
 # ✅ Chat History Retrieval
 def get_conversation_history(
-    db: Session, room_id: str, user_id: int, k: int = 48
+    db: Session, room_id: int, user_id: int, k: int = 48
 ) -> list:
     """
     Retrieve conversation history for a specific room and user.
 
     Args:
         db (Session): SQLAlchemy database session.
-        room_id (str): The room ID for the conversation.
+        room_id (int): The room ID for the conversation.
         user_id (int): The ID of the user requesting the conversation history.
         k (int): The maximum number of messages to retrieve (default: 48).
 
@@ -122,7 +122,7 @@ def get_conversation_history(
 
 
 # ✅ Agent Session Retrieval
-def get_agent_session(db: Session, room_id: str) -> Optional[AgentSession]:
+def get_agent_session(db: Session, room_id: int) -> Optional[AgentSession]:
     try:
         return db.query(AgentSession).filter_by(room_id=room_id).first()
     except Exception as e:
@@ -132,7 +132,7 @@ def get_agent_session(db: Session, room_id: str) -> Optional[AgentSession]:
 
 # ✅ Agent Session Save/Update
 def save_agent_session(
-    db: Session, room_id: str, context: dict, questions: list
+    db: Session, room_id: int, context: dict, questions: list
 ) -> None:
     try:
         existing = db.query(AgentSession).filter_by(room_id=room_id).first()
