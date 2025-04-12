@@ -1,4 +1,5 @@
 import logging
+import os
 from enum import Enum
 from pathlib import Path
 from typing import Annotated, Dict, List, Optional, Tuple
@@ -23,8 +24,36 @@ from src.mastercard_solution_tech_stack_agent.utilities.helpers import (
     load_yaml_file,
 )
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# === Log directory setup ===
+LOG_DIR = "src/mastercard_solution_tech_stack_agent/logs"
+os.makedirs(LOG_DIR, exist_ok=True)
+
+# === Log file paths ===
+LOG_FILES = {
+    "info": os.path.join(LOG_DIR, "info.log"),
+    "warning": os.path.join(LOG_DIR, "warning.log"),
+    "error": os.path.join(LOG_DIR, "error.log"),
+}
+
+# === Logging format ===
+log_format = logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s")
+
+# === Set up handlers per log level ===
+handlers = []
+for level, path in LOG_FILES.items():
+    handler = logging.FileHandler(path)
+    handler.setLevel(getattr(logging, level.upper()))
+    handler.setFormatter(log_format)
+    handlers.append(handler)
+
+# === Attach handlers to root logger ===
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.INFO)
+root_logger.handlers = []  # Remove existing
+for h in handlers:
+    root_logger.addHandler(h)
+root_logger.addHandler(logging.StreamHandler())  # Console
+
 logger = logging.getLogger(__name__)
 
 # === CONFIG ===

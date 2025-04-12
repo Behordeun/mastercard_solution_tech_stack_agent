@@ -1,7 +1,8 @@
 import asyncio
 import logging
+import os
 from functools import partial, wraps
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, List
 
 from langchain_core.messages import AIMessage
 
@@ -9,6 +10,7 @@ from src.mastercard_solution_tech_stack_agent.api.data_model import (
     Chat_Message,
     Chat_Response,
 )
+from src.mastercard_solution_tech_stack_agent.api.schemas import ChatMessageSchema
 from src.mastercard_solution_tech_stack_agent.database.pd_db import (
     DatabaseSession,
     get_conversation_history,
@@ -23,6 +25,36 @@ from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_
     agent,
     prompt_template,
 )
+
+# === Log directory setup ===
+LOG_DIR = "src/mastercard_solution_tech_stack_agent/logs"
+os.makedirs(LOG_DIR, exist_ok=True)
+
+# === Log file paths ===
+LOG_FILES = {
+    "info": os.path.join(LOG_DIR, "info.log"),
+    "warning": os.path.join(LOG_DIR, "warning.log"),
+    "error": os.path.join(LOG_DIR, "error.log"),
+}
+
+# === Logging format ===
+log_format = logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s")
+
+# === Set up handlers per log level ===
+handlers = []
+for level, path in LOG_FILES.items():
+    handler = logging.FileHandler(path)
+    handler.setLevel(getattr(logging, level.upper()))
+    handler.setFormatter(log_format)
+    handlers.append(handler)
+
+# === Attach handlers to root logger ===
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.INFO)
+root_logger.handlers = []  # Remove existing
+for h in handlers:
+    root_logger.addHandler(h)
+root_logger.addHandler(logging.StreamHandler())  # Console
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +101,33 @@ async def safe_db_operation(operation: Callable, *args: Any, **kwargs: Any) -> A
         raise DatabaseOperationError(str(e)) from e
 
 
+def extract_persona_and_tags(message: str) -> tuple[str, List[str]]:
+    tags = []
+    persona = None
+
+    message_lower = message.lower()
+
+    if "solution architect" in message_lower or "🧠" in message:
+        persona = "AI Solution Architect"
+        tags.append("architecture")
+
+    if "project goal" in message_lower:
+        tags.append("project kickoff")
+
+    if "marketing" in message_lower:
+        persona = "Marketing Strategist"
+        tags.extend(["strategy", "market research"])
+
+    if "fundraising" in message_lower or "startup" in message_lower:
+        persona = "Startup Advisor"
+        tags.append("venture")
+
+    if "let's" in message_lower:
+        tags.append("conversational")
+
+    return persona, tags
+
+
 class ChatProcessor:
     def __init__(self, db: Any):
         self.db = db
@@ -78,6 +137,7 @@ class ChatProcessor:
         message_dict: Dict[str, Any],
         ai_message: str,
         user_id: int,
+        usage_metadata: Dict[str, Any] = None,
         system_message: str = "",
         loggable: bool = True,
     ) -> Dict[str, Any]:
@@ -89,6 +149,8 @@ class ChatProcessor:
                 raise ValueError(
                     "user_id is required but was not provided to log_and_respond"
                 )
+
+            persona, tags = extract_persona_and_tags(ai_message)
 
             with DatabaseSession() as session:
                 room_id = message_dict.get("roomId") or message_dict.get("room_id")
@@ -113,7 +175,9 @@ class ChatProcessor:
                 resourceUrls=message_dict.get("resourceUrls") or [],
                 sender="AI",
                 message=ai_message,
-                tags=message_dict.get("tags") or [],
+                tags=tags,
+                persona=persona,
+                usageMetadata=usage_metadata or {},
             ).model_dump()
 
         except Exception as e:
@@ -167,7 +231,14 @@ class ChatProcessor:
                 raise ValueError("No AI response generated.")
 
             ai_message = ai_messages[-1].strip()
-            return await self.log_and_respond(message_dict, ai_message, user_id=user_id)
+            usage_metadata = output.get("usage_metadata", {})
+
+            return await self.log_and_respond(
+                message_dict,
+                ai_message,
+                user_id=user_id,
+                usage_metadata=usage_metadata,
+            )
 
         except asyncio.TimeoutError as e:
             system_logger.error(e, exc_info=True)
@@ -194,9 +265,10 @@ async def chat_event(db: Any, message: Chat_Message, user_id: int) -> Dict[str, 
         if not message.message.strip():
             return {"message": "No input provided."}
 
+        validated = ChatMessageSchema(**message.model_dump())
         chat_processor = ChatProcessor(db)
         response = await chat_processor.handle_graph_integration(
-            message.model_dump(), user_id
+            validated.dict(), user_id
         )
 
         logger.info(f"TSA145 Response: {response['message']}")

@@ -368,14 +368,30 @@ class UpdateAdminCredentials(BaseModel):
 
 
 class AIMessageResponseModel(BaseModel):
-    id: Optional[int]
-    user_id: Optional[int]
-    profile_id: Optional[int]
+    id: int
+    user_id: int
+    profile_id: Optional[int] = None
     content: str
-    usage_metadata: Optional[Dict[str, Any]] = None
-    response_metadata: Optional[Dict[str, Any]] = None
-    additional_kwargs: Optional[Dict[str, Any]] = None
-    created_at: Optional[datetime]
+    usage_metadata: Optional[Dict[str, Any]] = {}
+    response_metadata: Optional[Dict[str, Any]] = {}
+    additional_kwargs: Optional[Dict[str, Any]] = {}
+    created_at: datetime
+
+    # Optional: derived UI-friendly fields
+    tags: Optional[list[str]] = []
+    persona: Optional[str] = None
 
     class Config:
         from_attributes = True  # Enables compatibility with SQLAlchemy models
+
+
+class ChatMessageSchema(BaseModel):
+    id: int
+    roomId: int
+    message: str = Field(..., min_length=1)
+    resourceUrls: List[str] = []
+    tags: List[str] = []
+
+    @field_validator("message")
+    def sanitize_message(cls, v):
+        return re.sub(r"\[/?INST\]|<\|im_start\|>|<\|im_end\|>", "", v).strip()
