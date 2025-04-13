@@ -8,7 +8,7 @@ from langchain_openai import OpenAIEmbeddings
 
 def build_faiss_vectorstore(
     input_paths: List[str],
-    persist_path: str = "src/services/techstack_agent_module/kb_vectorstore",
+    persist_path: str = "src/mastercard_solution_tech_stack_agent/services/techstack_agent_module/kb_vectorstore",
     chunk_size: int = 500,
     chunk_overlap: int = 100,
 ):
