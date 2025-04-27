@@ -19,11 +19,11 @@ from src.mastercard_solution_tech_stack_agent.api.schemas import (
 from src.mastercard_solution_tech_stack_agent.config.appconfig import env_config
 from src.mastercard_solution_tech_stack_agent.config.db_setup import get_db
 from src.mastercard_solution_tech_stack_agent.database.schemas import User
-from src.mastercard_solution_tech_stack_agent.utilities.email_utils import (
-    send_account_deletion_confirmation_email,
-    send_account_deletion_verification_email,
-    send_confirmation_email,
-)
+# from src.mastercard_solution_tech_stack_agent.utilities.email_utils import (
+#    send_account_deletion_confirmation_email,
+#    send_account_deletion_verification_email,
+#    send_confirmation_email,
+# )
 
 # === Log directory setup ===
 LOG_DIR = "src/mastercard_solution_tech_stack_agent/logs"
@@ -631,13 +631,16 @@ async def request_account_deletion(
     current_user.otp = otp
     db.commit()
 
-    await send_account_deletion_verification_email(
-        normalized_email, current_user.first_name, otp
-    )
+    # await send_account_deletion_verification_email(
+    #    normalized_email, current_user.first_name, otp
+    # )
     logging.info("OTP sent to user's email")
     return {
-        "message": "OTP sent to your registered email address. Please use it to confirm account deletion."
+        f"message: Your OTP is {otp}. Please use it to confirm account deletion."
     }
+    #return {
+    #    "message": "OTP sent to your registered email address. Please use it to confirm account deletion."
+    #}
 
 
 @router.post("/confirm-account-deletion", summary="Confirm Account Deletion")
@@ -666,7 +669,7 @@ async def confirm_account_deletion(
     db.commit()
 
     # Send confirmation email for account deletion
-    await send_account_deletion_confirmation_email(payload.email, user.first_name)
+    # await send_account_deletion_confirmation_email(payload.email, user.first_name)
     logging.info("Account deleted successfully")
     return {"message": "Your account has been successfully deleted."}
 
@@ -698,7 +701,7 @@ async def recover_account(
     db.commit()
 
     # Send a confirmation email
-    await send_confirmation_email(user.email, user.first_name)
+    # await send_confirmation_email(user.email, user.first_name)
     logging.info("Account recovered successfully")
 
     return {"message": "Account successfully recovered"}

@@ -31,12 +31,12 @@ from src.mastercard_solution_tech_stack_agent.api.schemas import (
 from src.mastercard_solution_tech_stack_agent.config.appconfig import env_config
 from src.mastercard_solution_tech_stack_agent.config.db_setup import get_db
 from src.mastercard_solution_tech_stack_agent.database.schemas import User, UserProfile
-from src.mastercard_solution_tech_stack_agent.utilities.email_utils import (
-    send_confirmation_email,
-    send_password_reset_confirmation_email,
-    send_password_reset_email,
-    send_verification_email,
-)
+# from src.mastercard_solution_tech_stack_agent.utilities.email_utils import (
+#    send_confirmation_email,
+#    send_password_reset_confirmation_email,
+#    send_password_reset_email,
+#    send_verification_email,
+# )
 
 # === Log directory setup ===
 LOG_DIR = "src/mastercard_solution_tech_stack_agent/logs"
@@ -262,7 +262,7 @@ async def user_registration(user_data: UserCreate, db: Session = Depends(get_db)
         db.commit()
 
         # Send verification email
-        await send_verification_email(normalized_email, user_data.first_name, otp)
+        # await send_verification_email(normalized_email, user_data.first_name, otp)
 
         # Generate JWT access token
         access_token = create_access_token(
@@ -371,13 +371,13 @@ async def user_verification_via_link(
     db.commit()
 
     # Optionally send a confirmation email
-    try:
-        await send_confirmation_email(user.email, user.first_name)
-        logger.info(f"User {normalized_email} verified successfully")
-    except Exception as email_error:
-        logger.error(
-            f"Failed to send confirmation email to {normalized_email}: {email_error}"
-        )
+    # try:
+        # await send_confirmation_email(user.email, user.first_name)
+    #    logger.info(f"User {normalized_email} verified successfully")
+    # except Exception as email_error:
+    #    logger.error(
+    #        f"Failed to send confirmation email to {normalized_email}: {email_error}"
+    #    )
 
     return {"message": "User verified successfully"}
 
@@ -444,17 +444,17 @@ async def resend_verification_email(
     db.commit()
 
     # Send the verification email
-    try:
-        await send_verification_email(user.email, user.first_name, otp)
-        logger.info(f"Verification email resent to email={email}")
-    except Exception as email_error:
-        logger.error(
-            f"Failed to send verification email to email={email}: {email_error}"
-        )
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to send verification email. Please try again later.",
-        )
+    # try:
+        # await send_verification_email(user.email, user.first_name, otp)
+    #    logger.info(f"Verification email resent to email={email}")
+    # except Exception as email_error:
+    #    logger.error(
+    #        f"Failed to send verification email to email={email}: {email_error}"
+    #    )
+    #    raise HTTPException(
+    #        status_code=500,
+    #        detail="Failed to send verification email. Please try again later.",
+    #    )
 
     return {"message": f"Verification email has been resent to {email}."}
 
@@ -624,7 +624,7 @@ async def forgot_password(
     )
 
     # Send OTP via email
-    await send_password_reset_email(normalized_email, user.first_name, otp)
+    # await send_password_reset_email(normalized_email, user.first_name, otp)
     logger.info(f"Password reset link sent to {normalized_email}")
 
     return {"message": "Password reset link sent to your email address."}
@@ -665,7 +665,7 @@ async def request_password_reset(
     )
 
     # Send password reset OTP via email
-    await send_password_reset_email(current_user.email, current_user.first_name, otp)
+    # await send_password_reset_email(current_user.email, current_user.first_name, otp)
     logger.info(f"Password reset link sent to {current_user.email}")
 
     return {"message": "Password reset link sent to your email address."}
@@ -724,14 +724,14 @@ async def confirm_password_reset(
     db.commit()
 
     # Send confirmation email
-    try:
-        await send_password_reset_confirmation_email(user.email, user.first_name)
-    except Exception as email_error:
-        logger.error(f"Failed to send password reset confirmation email: {email_error}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to send password reset confirmation email.",
-        ) from email_error
+    # try:
+        # await send_password_reset_confirmation_email(user.email, user.first_name)
+    # except Exception as email_error:
+    #    logger.error(f"Failed to send password reset confirmation email: {email_error}")
+    #    raise HTTPException(
+    #        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    #        detail="Failed to send password reset confirmation email.",
+    #    ) from email_error
 
     logger.info(f"Password reset successfully for {user.email}")
     return {
@@ -848,7 +848,7 @@ async def submit_reset_password(
     db.commit()
 
     # Send confirmation email
-    await send_password_reset_confirmation_email(user.email, user.first_name)
+    # await send_password_reset_confirmation_email(user.email, user.first_name)
 
     return {
         "message": "Password successfully reset. You can now log in with your new password."
