@@ -1,3 +1,4 @@
+import os
 import re
 from datetime import datetime
 from typing import Annotated, Union
@@ -26,6 +27,18 @@ from src.mastercard_solution_tech_stack_agent.services.manager import (
     chat_event,
     create_chat,
 )
+
+# === Log directory setup ===
+LOG_DIR = "src/mastercard_solution_tech_stack_agent/logs"
+os.makedirs(LOG_DIR, exist_ok=True)  # Ensure the logs directory exists
+
+# === Log file paths ===
+LOG_FILES = {
+    "info": os.path.join(LOG_DIR, "info.log"),
+    "warning": os.path.join(LOG_DIR, "warning.log"),
+    "error": os.path.join(LOG_DIR, "error.log"),
+}
+
 
 router = APIRouter(
     responses={

@@ -1,3 +1,4 @@
+import os
 import secrets
 import string
 from datetime import datetime, timedelta, timezone
@@ -26,6 +27,18 @@ from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import (
 #    send_account_deletion_verification_email,
 #    send_confirmation_email,
 # )
+
+
+# === Log directory setup ===
+LOG_DIR = "src/mastercard_solution_tech_stack_agent/logs"
+os.makedirs(LOG_DIR, exist_ok=True)  # Ensure the logs directory exists
+
+# === Log file paths ===
+LOG_FILES = {
+    "info": os.path.join(LOG_DIR, "info.log"),
+    "warning": os.path.join(LOG_DIR, "warning.log"),
+    "error": os.path.join(LOG_DIR, "error.log"),
+}
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")

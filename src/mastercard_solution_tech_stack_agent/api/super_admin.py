@@ -1,4 +1,3 @@
-import logging
 import os
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -7,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from src.mastercard_solution_tech_stack_agent.api.auth import (
     create_access_token,
+    generate_pagination_metadata,
     normalize_input,
     verify_password,
     verify_super_admin_or_admin,
@@ -18,6 +18,9 @@ from src.mastercard_solution_tech_stack_agent.api.schemas import (
 from src.mastercard_solution_tech_stack_agent.config.appconfig import env_config
 from src.mastercard_solution_tech_stack_agent.config.db_setup import get_db
 from src.mastercard_solution_tech_stack_agent.database.schemas import User
+from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import (
+    system_logger,
+)
 
 # === Log directory setup ===
 LOG_DIR = "src/mastercard_solution_tech_stack_agent/logs"
@@ -29,35 +32,6 @@ LOG_FILES = {
     "warning": os.path.join(LOG_DIR, "warning.log"),
     "error": os.path.join(LOG_DIR, "error.log"),
 }
-
-# === Logging format ===
-log_format = logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s")
-
-# === Set up handlers per log level ===
-info_handler = logging.FileHandler(LOG_FILES["info"])
-info_handler.setLevel(logging.INFO)
-info_handler.setFormatter(log_format)
-
-warning_handler = logging.FileHandler(LOG_FILES["warning"])
-warning_handler.setLevel(logging.WARNING)
-warning_handler.setFormatter(log_format)
-
-error_handler = logging.FileHandler(LOG_FILES["error"])
-error_handler.setLevel(logging.ERROR)
-error_handler.setFormatter(log_format)
-
-# === Attach handlers to root logger ===
-root_logger = logging.getLogger()
-root_logger.setLevel(logging.INFO)
-root_logger.handlers = []  # Remove default handlers
-
-root_logger.addHandler(info_handler)
-root_logger.addHandler(warning_handler)
-root_logger.addHandler(error_handler)
-root_logger.addHandler(logging.StreamHandler())  # Also log to console
-
-# === Module-level logger ===
-logger = logging.getLogger(__name__)
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
@@ -98,7 +72,7 @@ async def super_admin_login(
     Super Admin Login with email and password.
 
     ### Request:
-    - `username` (str): Super Admin email.
+    - `email` (str): Super Admin email.
     - `password` (str): Super Admin password.
 
     ### Response:
@@ -108,13 +82,15 @@ async def super_admin_login(
     - `401 Unauthorized`: If the credentials are incorrect.
     """
     # Normalize email
-    normalized_email = normalize_input(form_data.username)
+    normalized_email = normalize_input(form_data.email)
 
     # Check if the Super Admin user exists in the database
     super_admin = db.query(User).filter(User.email == normalized_email).first()
 
     if not super_admin:
-        logger.error("Super Admin account not found. Please check initialization.")
+        system_logger.error(
+            "Super Admin account not found. Please check initialization."
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Super Admin account is not initialized. Contact the system administrator.",
@@ -122,7 +98,7 @@ async def super_admin_login(
 
     # Verify the provided credentials
     if not verify_password(form_data.password, super_admin.hashed_password):
-        logger.warning(f"Failed login attempt for {normalized_email}.")
+        system_logger.warning("Failed login attempt for %s.", normalized_email)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -140,22 +116,22 @@ async def super_admin_login(
         }
     )
 
-    logger.info(f"Super Admin {normalized_email} logged in successfully.")
+    system_logger.info("Super Admin %s logged in successfully.", normalized_email)
     return {"access_token": access_token, "token_type": env_config.token_type}
 
 
 # Assign Admin Access to a User (Super Admin only)
-@router.post("/assign-admin/{username}", summary="Assign Admin Access to a User")
+@router.post("/assign-admin/{email}", summary="Assign Admin Access to a User")
 async def assign_admin_access(
-    username: str,
+    email: str,
     db: Session = Depends(get_db),
     current_user: dict = Depends(verify_super_admin_or_admin),
 ):
     """
-    Assign admin access to a user by their username.
+    Assign admin access to a user by their email.
 
     ### Path Parameters:
-    - `username` (str): The username of the user to promote to admin.
+    - `email` (str): The email of the user to promote to admin.
 
     ### Response:
     - A JSON object containing details about the user after admin access is granted.
@@ -165,29 +141,29 @@ async def assign_admin_access(
     - `404 Not Found`: If the user is not found.
     - `400 Bad Request`: If the user is already an admin.
     """
-    logger.info(f"Attempting to assign admin access to username: {username}")
+    system_logger.info("Attempting to assign admin access to email: %s", email)
 
-    # Normalize and log the username
-    normalized_username = normalize_input(username)
-    logger.debug(f"Normalized username: {normalized_username}")
+    # Normalize and log the email
+    normalized_email = normalize_input(email)
+    system_logger.info("Normalized email: %s", normalized_email)
 
     # Query user
-    user = db.query(User).filter(User.username.ilike(normalized_username)).first()
+    user = db.query(User).filter(User.email.ilike(normalized_email)).first()
 
     # Check if user exists
     if not user:
-        logger.error(f"User with username '{normalized_username}' not found.")
+        system_logger.error("User with email %s not found.", normalized_email)
         raise HTTPException(status_code=404, detail="User not found.")
 
     # Check if user is already an admin
     if user.is_admin:
-        logger.info(
-            f"User '{normalized_username}' is already an admin. No changes made."
+        system_logger.info(
+            f"User '{normalized_email}' is already an admin. No changes made."
         )
         return {
-            "message": f"User '{username}' is already an admin.",
+            "message": f"User '{email}' is already an admin.",
             "user_id": user.id,
-            "username": user.username,
+            "email": user.email,
             "is_admin": user.is_admin,
         }
 
@@ -196,12 +172,13 @@ async def assign_admin_access(
         user.is_admin = True
         db.commit()
         db.refresh(user)
-        logger.info(f"Admin rights successfully assigned to '{normalized_username}'.")
+        system_logger.info(
+            "Admin rights successfully assigned to %s.", normalized_email
+        )
 
         return {
-            "message": f"Admin access granted to user '{username}'.",
+            "message": "Admin access granted to user '{email}'.",
             "user_id": user.id,
-            "username": user.username,
             "email": user.email,
             "is_admin": user.is_admin,
             "is_verified": user.is_verified,
@@ -209,23 +186,23 @@ async def assign_admin_access(
         }
 
     except Exception as e:
-        logger.error(f"Failed to assign admin access: {str(e)}")
+        system_logger.error("Failed to assign admin access: %s", e)
         raise HTTPException(
             status_code=500, detail="Internal server error during admin assignment."
-        )
+        ) from e
 
 
-@router.post("/revoke-admin/{username}", summary="Revoke Admin Access from a User")
+@router.post("/revoke-admin/{email}", summary="Revoke Admin Access from a User")
 async def revoke_admin_access(
-    username: str,
+    email: str,
     db: Session = Depends(get_db),
     current_user: dict = Depends(verify_super_admin_or_admin),
 ):
     """
-    Revoke admin access from a user by their username.
+    Revoke admin access from a user by their email.
 
     ### Path Parameters:
-    - `username` (str): The username of the user to revoke admin access from.
+    - `email` (str): The email of the user to revoke admin access from.
 
     ### Response:
     - A message confirming admin access has been revoked.
@@ -234,31 +211,30 @@ async def revoke_admin_access(
     - `404 Not Found`: If the user is not found.
     - `400 Bad Request`: If the user is not an admin.
     """
-    logger.info(f"Revoking admin access for user with username: {username}")
+    system_logger.info("Revoking admin access for user with email: %s", email)
 
-    # Normalize username
-    normalized_username = normalize_input(username)
+    # Normalize email
+    normalized_email = normalize_input(email)
 
-    # Query the user by username
-    user = db.query(User).filter(User.username.ilike(normalized_username)).first()
+    # Query the user by email
+    user = db.query(User).filter(User.email.ilike(normalized_email)).first()
 
     if not user:
-        logger.error(f"User with username '{normalized_username}' not found.")
+        system_logger.error("User with email %s not found.", normalized_email)
         raise HTTPException(status_code=404, detail="User not found")
 
     if not user.is_admin:
-        logger.warning(f"User '{normalized_username}' is not an admin.")
+        system_logger.warning("User %s is not an admin.", normalized_email)
         raise HTTPException(status_code=400, detail="User is not an admin")
 
     # Revoke admin access
     user.is_admin = False
     db.commit()
 
-    logger.info(f"Admin access revoked for user '{normalized_username}'.")
+    system_logger.info("Admin access revoked for user %s.", normalized_email)
     return {
-        "message": f"Admin access revoked for user '{username}'.",
+        "message": f"Admin access revoked for user '{email}'.",
         "user_id": user.id,
-        "username": user.username,
         "email": user.email,
         "is_admin": user.is_admin,
         "is_verified": user.is_verified,
@@ -285,7 +261,7 @@ async def list_admins(
     ### Raises:
     - None
     """
-    logger.info("Listing all users with admin access.")
+    system_logger.info("Listing all users with admin access.")
 
     # Query for admin users
     admins_query = db.query(User).filter(User.is_admin == True)
@@ -330,16 +306,16 @@ async def suspend_user_account(
     user = db.query(User).filter(User.id == user_id).first()
 
     if not user:
-        logger.error(f"User with ID {user_id} not found for suspension.")
+        system_logger.error("User with ID %s not found for suspension.", user_id)
         raise HTTPException(status_code=404, detail="User not found")
 
     if not user.is_active:
-        logger.warning(f"User with ID {user_id} account is already suspended.")
+        system_logger.warning("User with ID %s account is already suspended.", user_id)
         raise HTTPException(status_code=400, detail="User account is already suspended")
 
     user.is_active = False  # Set the user's account as inactive (suspended)
     db.commit()
-    logging.info("User account suspended successfully.")
+    system_logger.info("User account suspended successfully.")
     return {"message": f"User {user_id} has been suspended"}
 
 
@@ -365,14 +341,14 @@ async def reactivate_user_account(
     user = db.query(User).filter(User.id == user_id).first()
 
     if not user:
-        logger.error(f"User with ID {user_id} not found for reactivation.")
+        system_logger.error("User with ID %s not found for reactivation.", user_id)
         raise HTTPException(status_code=404, detail="User not found")
 
     if user.is_active:
-        logger.warning(f"User with ID {user_id} account is already active.")
+        system_logger.warning("User with ID %s account is already active.", user_id)
         raise HTTPException(status_code=400, detail="User account is already active")
 
     user.is_active = True  # Set the user's account as active
     db.commit()
-    logging.info("User account reactivated successfully.")
+    system_logger.info("User account reactivated successfully.")
     return {"message": f"User {user_id} has been reactivated"}
