@@ -1,0 +1,4 @@
+name: specify_goal
+_type: prompt
+template: |
+  "What is the goal of your project?\n"

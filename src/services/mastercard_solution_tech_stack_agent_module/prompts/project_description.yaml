@@ -1,6 +1,4 @@
 name: project_description
 _type: prompt
 template: |
-  "🧭 What are you building? Describe your project in 1-2 sentences.\n"
-  "Examples:\n- 'A patient management system for clinics'\n"
-  "- 'An educational platform for K-12 students'"
+  "Based on the previous conversation, craft a question asking the user to provide a detailed description of their project. "

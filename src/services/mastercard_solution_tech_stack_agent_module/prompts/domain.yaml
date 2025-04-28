@@ -1,0 +1,6 @@
+name: domain
+_type: prompt
+template: |
+  "What industry/domain does this serve?\n"
+  f"Common domains: Education, Healthcare, Finance, E-commerce, Agriculture, Logistics "
+  "Or specify your own:"
