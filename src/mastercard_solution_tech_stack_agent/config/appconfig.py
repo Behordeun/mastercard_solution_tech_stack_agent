@@ -18,6 +18,7 @@ class EnvConfig:
         self.auth_password = os.getenv("AUTH_PASSWORD")
         self.host = os.getenv("DB_HOST")
         self.database = os.getenv("DB_DATABASE")
+        self.database_url = os.getenv("POSTGRES_DB_URL")
         self.user = os.getenv("DB_USER")
         self.password = os.getenv("DB_PASSWORD")
         self.openai_api_key = os.getenv("OPENAI_API_KEY")
