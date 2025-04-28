@@ -94,16 +94,9 @@ class UserCreate(UserBase):
     first_name: str
     last_name: str
     profile_picture: Optional[str] = None
-    bio: Optional[str] = None
-    linkedin: Optional[str] = None
-    twitter: Optional[str] = None
-    nationality: Optional[str] = None
-    phone_number: Optional[str] = None
-    gender: Optional[Gender] = None
     password: str = Field(
         ..., min_length=8, description="Password must be at least 8 characters long."
     )
-    confirm_password: str
 
     @field_validator("username")
     def validate_username(cls, v):
@@ -129,78 +122,10 @@ class UserCreate(UserBase):
             raise ValueError("Password must contain at least one special character")
         return v
 
-    @field_validator("confirm_password")
-    def passwords_match(cls, v, info: ValidationInfo):
-        """Ensure password and confirm password match."""
-        if v != info.data.get("password"):
-            raise ValueError("Passwords do not match.")
-        return v
-        return v
-
 
 class UserVerify(BaseModel):
     email: EmailStr
     otp: str
-
-
-class UserUpdate(BaseModel):
-    email: Optional[EmailStr] = None
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    bio: Optional[str] = None
-    profile_picture: Optional[str] = None
-    # Custom Literal for country names
-    nationality: Optional[CountryNameLiteral] = None
-    linkedin: Optional[str] = None
-    twitter: Optional[str] = None
-    phone_number: Optional[str] = None
-    gender: Optional[Gender] = None  # Custom Enum for gender options
-
-    @model_validator(mode="before")
-    def handle_empty_strings(cls, values: dict):
-        """
-        Convert empty strings to None for optional fields.
-        """
-        for field in ["nationality", "phone_number", "linkedin", "twitter", "bio"]:
-            if values.get(field) == "":
-                values[field] = None
-        return values
-
-    @field_validator("phone_number")
-    def clean_and_prefix_phone_number(cls, value: Optional[str], info):
-        """
-        Standardizes the phone number by ensuring it has the correct country code
-        based on the user's nationality. The phone number itself is cleaned and retained.
-        """
-        if not value:  # Allow None or empty string
-            return None  # ✅ Instead of raising ValueError
-
-        nationality = info.data.get("nationality")
-        if not nationality:
-            raise ValueError(
-                "Phone number provided without nationality. Please provide both."
-            )
-
-        # Get the country code for the provided nationality
-        country_code = country_code_mapping.get(nationality)
-        if not country_code:
-            raise ValueError(f"No country code found for nationality '{nationality}'.")
-
-        # Remove any existing country code or non-numeric characters
-        cleaned_value = re.sub(r"[^\d]", "", value)
-
-        # Prefix with the correct country code
-        return f"{country_code}{cleaned_value}"
-
-    @field_validator("nationality")
-    def validate_nationality_with_phone(cls, value: Optional[str], info):
-        """
-        Ensure nationality is provided if a phone number is specified.
-        """
-        phone_number = info.data.get("phone_number")
-        if phone_number and not value:
-            raise ValueError("Nationality is required when a phone number is provided.")
-        return value
 
 
 class UserProfileBase(BaseModel):
@@ -223,14 +148,7 @@ class UserProfileResponse(BaseModel):
     email: EmailStr
     first_name: str
     last_name: str
-    username: str
-    bio: Optional[str] = None
     profile_picture: Optional[str] = None
-    nationality: Optional[str] = None
-    linkedin: Optional[str] = None
-    twitter: Optional[str] = None
-    phone_number: Optional[str] = None
-    gender: Optional[Gender] = None
     is_active: bool
     is_verified: bool
     is_admin: bool
@@ -246,14 +164,8 @@ class UserProfileResponse(BaseModel):
             email=obj.email,
             first_name=obj.first_name,
             last_name=obj.last_name,
-            username=obj.username,
-            bio=getattr(obj, "bio", None),  # ✅ Safe access
             profile_picture=getattr(obj, "profile_picture", None),
             nationality=getattr(obj, "nationality", None),
-            linkedin=getattr(obj, "linkedin", None),
-            twitter=getattr(obj, "twitter", None),
-            phone_number=getattr(obj, "phone_number", None),
-            gender=getattr(obj, "gender", None),
             is_active=obj.is_active,
             is_verified=obj.is_verified,
             is_admin=obj.is_admin,
@@ -271,7 +183,6 @@ class PasswordResetConfirmation(BaseModel):
     email: Optional[EmailStr] = None
     otp: str
     new_password: str
-    confirm_new_password: str
 
     @field_validator("new_password")
     def password_strength(cls, v):
@@ -285,13 +196,6 @@ class PasswordResetConfirmation(BaseModel):
             raise ValueError("Password must contain at least one number")
         if not re.search(r"[!@#$%^&*(),.?\":{}|<>_]", v):
             raise ValueError("Password must contain at least one special character")
-        return v
-
-    @field_validator("confirm_new_password")
-    def passwords_match(cls, v, values):
-        new_password = values.data.get("new_password")
-        if new_password and not secrets.compare_digest(v, new_password):
-            raise ValueError("Passwords do not match")
         return v
 
 

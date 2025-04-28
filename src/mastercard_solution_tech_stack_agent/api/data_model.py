@@ -61,7 +61,6 @@ class UserVerify(BaseModel):
 
 
 class UserUpdate(BaseModel):
-    email: Optional[EmailStr]
     password: Optional[str]
     is_active: Optional[bool]
 
@@ -73,7 +72,6 @@ class UserProfileBase(BaseModel):
     user_id: int
     first_name: Optional[str]
     last_name: Optional[str]
-    bio: Optional[str]
     profile_picture_url: Optional[str]
 
     class Config:
