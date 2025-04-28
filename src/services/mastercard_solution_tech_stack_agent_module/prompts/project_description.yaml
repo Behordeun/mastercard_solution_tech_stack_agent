@@ -1,0 +1,6 @@
+name: project_description
+_type: prompt
+template: |
+  "🧭 What are you building? Describe your project in 1-2 sentences.\n"
+  "Examples:\n- 'A patient management system for clinics'\n"
+  "- 'An educational platform for K-12 students'"
