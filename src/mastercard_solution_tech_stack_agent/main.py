@@ -1,5 +1,4 @@
 # Import libraries
-import logging
 import os
 from contextlib import asynccontextmanager
 
@@ -27,46 +26,6 @@ from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import (
     system_logger,
 )
 from src.mastercard_solution_tech_stack_agent.utilities.Printer import printer
-
-# === Log directory setup ===
-LOG_DIR = "src/mastercard_solution_tech_stack_agent/logs"
-os.makedirs(LOG_DIR, exist_ok=True)  # Ensure the logs directory exists
-
-# === Log file paths ===
-LOG_FILES = {
-    "info": os.path.join(LOG_DIR, "info.log"),
-    "warning": os.path.join(LOG_DIR, "warning.log"),
-    "error": os.path.join(LOG_DIR, "error.log"),
-}
-
-# === Logging format ===
-log_format = logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s")
-
-# === Set up handlers per log level ===
-info_handler = logging.FileHandler(LOG_FILES["info"])
-info_handler.setLevel(logging.INFO)
-info_handler.setFormatter(log_format)
-
-warning_handler = logging.FileHandler(LOG_FILES["warning"])
-warning_handler.setLevel(logging.WARNING)
-warning_handler.setFormatter(log_format)
-
-error_handler = logging.FileHandler(LOG_FILES["error"])
-error_handler.setLevel(logging.ERROR)
-error_handler.setFormatter(log_format)
-
-# === Attach handlers to root logger ===
-root_logger = logging.getLogger()
-root_logger.setLevel(logging.INFO)
-root_logger.handlers = []  # Remove default handlers
-
-root_logger.addHandler(info_handler)
-root_logger.addHandler(warning_handler)
-root_logger.addHandler(error_handler)
-root_logger.addHandler(logging.StreamHandler())  # Also log to console
-
-# === Module-level logger ===
-logger = logging.getLogger(__name__)
 
 settings = Settings()
 
@@ -132,7 +91,7 @@ async def serve_ui(request: Request):
 # === Global Exception Logging ===
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Unhandled Exception: {exc}", exc_info=True)
+    system_logger.error("Unhandled Exception: %s", exc, exc_info=True)
     return JSONResponse(
         status_code=500,
         content={"detail": "An unexpected error occurred. Please try again later."},
@@ -141,7 +100,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
-    logger.warning(f"HTTP Exception: {exc.status_code} - {exc.detail}")
+    system_logger.warning("HTTP Exception: %s", exc.status_code - exc.detail)
     return JSONResponse(
         status_code=exc.status_code,
         content={"detail": exc.detail},
@@ -177,7 +136,7 @@ async def view_logs(log_type: str):
         with open(log_file, "r", encoding="utf-8") as f:
             return f.read() or "Log file is empty."
     except Exception as e:
-        logger.error(f"Error reading log '{log_type}': {e}", exc_info=True)
+        system_logger.error("Error reading log %s", log_type=e, exc_info=True)
         raise HTTPException(status_code=500, detail="Error reading log file.")
 
 

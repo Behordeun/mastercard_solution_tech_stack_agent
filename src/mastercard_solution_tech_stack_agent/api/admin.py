@@ -1,6 +1,3 @@
-import logging
-import os
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -19,47 +16,9 @@ from src.mastercard_solution_tech_stack_agent.api.schemas import (
 from src.mastercard_solution_tech_stack_agent.config.appconfig import env_config
 from src.mastercard_solution_tech_stack_agent.database.pd_db import get_db
 from src.mastercard_solution_tech_stack_agent.database.schemas import User
-
-# === Log directory setup ===
-LOG_DIR = "src/mastercard_solution_tech_stack_agent/logs"
-os.makedirs(LOG_DIR, exist_ok=True)  # Ensure the logs directory exists
-
-# === Log file paths ===
-LOG_FILES = {
-    "info": os.path.join(LOG_DIR, "info.log"),
-    "warning": os.path.join(LOG_DIR, "warning.log"),
-    "error": os.path.join(LOG_DIR, "error.log"),
-}
-
-# === Logging format ===
-log_format = logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s")
-
-# === Set up handlers per log level ===
-info_handler = logging.FileHandler(LOG_FILES["info"])
-info_handler.setLevel(logging.INFO)
-info_handler.setFormatter(log_format)
-
-warning_handler = logging.FileHandler(LOG_FILES["warning"])
-warning_handler.setLevel(logging.WARNING)
-warning_handler.setFormatter(log_format)
-
-error_handler = logging.FileHandler(LOG_FILES["error"])
-error_handler.setLevel(logging.ERROR)
-error_handler.setFormatter(log_format)
-
-# === Attach handlers to root logger ===
-root_logger = logging.getLogger()
-root_logger.setLevel(logging.INFO)
-root_logger.handlers = []  # Remove default handlers
-
-root_logger.addHandler(info_handler)
-root_logger.addHandler(warning_handler)
-root_logger.addHandler(error_handler)
-root_logger.addHandler(logging.StreamHandler())  # Also log to console
-
-# === Module-level logger ===
-logger = logging.getLogger(__name__)
-
+from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import (
+    system_logger,
+)
 
 router = APIRouter(
     responses={
@@ -117,7 +76,7 @@ async def admin_login(form_data: Login, db: Session = Depends(get_db)):
     ### Raises:
     - `401 Unauthorized`: If the credentials are incorrect.
     """
-    logger.info(f"Admin login attempt for email: {form_data.email}")
+    system_logger.info("Admin login attempt for email: %s", form_data.email)
 
     # Normalize email
     normalized_email = normalize_input(form_data.email)
@@ -130,7 +89,9 @@ async def admin_login(form_data: Login, db: Session = Depends(get_db)):
     )
 
     if not admin or not verify_password(form_data.password, admin.hashed_password):
-        logger.warning(f"Invalid login attempt for admin email: {form_data.email}")
+        system_logger.warning(
+            "Invalid login attempt for admin email: %s", normalized_email
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid admin credentials"
         )
@@ -147,7 +108,7 @@ async def admin_login(form_data: Login, db: Session = Depends(get_db)):
         }
     )
 
-    logger.info(f"Access token created for admin: {normalized_email}")
+    system_logger.info("Access token created for admin: %s", normalized_email)
     return {"access_token": access_token, "token_type": env_config.token_type}
 
 
@@ -170,7 +131,7 @@ async def update_admin_credentials(
     ### Raises:
     - `400 Bad Request`: If the email is already taken by another user.
     """
-    logger.info(f"Admin {get_user_info(current_admin)} is updating credentials")
+    system_logger.info("Admin %s is updating credentials", get_user_info(current_admin))
     admin_id, _ = get_user_info(current_admin)
 
     if credentials.email:
@@ -180,16 +141,16 @@ async def update_admin_credentials(
         # Check if the email is already taken by another user
         existing_user = db.query(User).filter(User.email == normalized_email).first()
         if existing_user and existing_user.id != admin_id:
-            logger.warning(
-                f"Email {credentials.email} is already in use by another user"
+            system_logger.warning(
+                "Email %s is already in use by another user", credentials.email
             )
             raise HTTPException(status_code=400, detail="Email is already taken")
         current_admin.email = normalized_email
-        logger.info(f"Admin email updated to: {normalized_email}")
+        system_logger.info(f"Admin email updated to: %s", normalized_email)
 
     if credentials.password:
         current_admin.hashed_password = hash_password(credentials.password)
-        logger.info("Admin password updated successfully")
+        system_logger.info("Admin password updated successfully")
 
     db.commit()
     return {"message": "Admin credentials updated successfully"}
@@ -203,15 +164,17 @@ async def suspend_user_account(
     current_admin: User = Depends(get_current_admin_or_super_admin),
 ):
     admin_id, admin_email, _ = get_user_info(current_admin)
-    logger.info(f"Admin {admin_email} is suspending user ID: {user_id}")
+    system_logger.info("Admin %s is suspending user ID: %s", admin_email, user_id)
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        logger.warning(f"User ID {user_id} not found for suspension.")
+        system_logger.warning("User ID %s not found for suspension.", user_id)
         raise HTTPException(status_code=404, detail="User not found")
 
     user.is_active = False
     db.commit()
-    logger.info(f"User ID {user_id} suspended successfully by admin {admin_email}.")
+    system_logger.info(
+        "User ID %s suspended successfully by admin %s.", user_id, admin_email
+    )
     return {"message": "User suspended successfully"}
 
 
@@ -234,20 +197,20 @@ async def reactivate_user_account(
     ### Raises:
     - `404 Not Found`: If the user is not found.
     """
-    logger.info(
-        f"Admin {get_user_info(current_admin)} is reactivating user ID: {user_id}"
+    system_logger.info(
+        "Admin %s is reactivating user ID: %s", get_user_info(current_admin), user_id
     )
     user = db.query(User).filter(User.id == user_id).first()
 
     if not user:
-        logger.error(f"User ID {user_id} not found for reactivation")
+        system_logger.error("User ID %s not found for reactivation", user_id)
         raise HTTPException(status_code=404, detail="User not found")
 
     if user.is_active:
-        logger.warning(f"User ID {user_id} account is already active")
+        system_logger.warning("User ID %s account is already active", user_id)
         raise HTTPException(status_code=400, detail="User account is already active")
 
     user.is_active = True  # Set the user's account as active
     db.commit()
-    logger.info(f"User ID {user_id} has been reactivated")
+    system_logger.info("User ID %s has been reactivated", user_id)
     return {"message": f"User {user_id} has been reactivated"}

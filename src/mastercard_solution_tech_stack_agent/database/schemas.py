@@ -1,8 +1,15 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, Column, DateTime
-from sqlalchemy import Enum as SQLAlchemyEnum
-from sqlalchemy import ForeignKey, Integer, String, Text, func
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    func,
+)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy.types import JSON
@@ -99,7 +106,6 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    username = Column(String(255), unique=True, nullable=False, index=True)
     email = Column(String(255), unique=True, nullable=False, index=True)
     hashed_password = Column(String(255), nullable=False)
     first_name = Column(String(100), nullable=False)
@@ -145,15 +151,6 @@ class UserProfile(Base):
     )
 
     profile_picture = Column(String, nullable=True)
-    bio = Column(Text, nullable=True)
-    linkedin = Column(String(255), nullable=True)
-    twitter = Column(String(255), nullable=True)
-    nationality = Column(String(100), nullable=True)
-    phone_number = Column(String(20), nullable=True)
-
-    gender = Column(
-        SQLAlchemyEnum("Male", "Female", "Other", name="gender_types"), nullable=True
-    )
 
     otp = Column(String(6), nullable=True)
     otp_created_at = Column(DateTime(timezone=True), nullable=True)

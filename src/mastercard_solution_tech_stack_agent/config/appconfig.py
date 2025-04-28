@@ -53,6 +53,22 @@ class EnvConfig:
         self.cloudinary_cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME")
         self.token_type = os.getenv("TOKEN_TYPE", "Bearer")
         self.server_base_address = os.getenv("SERVER_BASE_ADDRESS")
+        self.google_auth_authorize_url = os.getenv(
+            "GOOGLE_AUTH_AUTHORIZE_URL",
+            "https://accounts.google.com/o/oauth2/auth",
+        )
+        self.google_auth_token_url = os.getenv(
+            "GOOGLE_AUTH_TOKEN_URL",
+            "https://oauth2.googleapis.com/token",
+        )
+        self.apple_auth_authorize_url = os.getenv(
+            "APPLE_AUTH_AUTHORIZE_URL",
+            "https://appleid.apple.com/auth/authorize",
+        )
+        self.apple_auth_access_token_url = os.getenv(
+            "APPLE_AUTH_ACCESS_TOKEN_URL",
+            "https://appleid.apple.com/auth/token",
+        )
 
     def __repr__(self):
         return (

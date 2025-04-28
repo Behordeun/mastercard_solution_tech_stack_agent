@@ -1,5 +1,3 @@
-import logging
-import os
 import re
 from datetime import datetime, timedelta, timezone
 
@@ -26,57 +24,20 @@ from src.mastercard_solution_tech_stack_agent.api.schemas import (
     TokenResponse,
     UserCreate,
     UserProfileResponse,
-    UserUpdate,
 )
 from src.mastercard_solution_tech_stack_agent.config.appconfig import env_config
 from src.mastercard_solution_tech_stack_agent.config.db_setup import get_db
 from src.mastercard_solution_tech_stack_agent.database.schemas import User, UserProfile
+from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import (
+    system_logger,
+)
+
 # from src.mastercard_solution_tech_stack_agent.utilities.email_utils import (
 #    send_confirmation_email,
 #    send_password_reset_confirmation_email,
 #    send_password_reset_email,
 #    send_verification_email,
 # )
-
-# === Log directory setup ===
-LOG_DIR = "src/mastercard_solution_tech_stack_agent/logs"
-os.makedirs(LOG_DIR, exist_ok=True)  # Ensure the logs directory exists
-
-# === Log file paths ===
-LOG_FILES = {
-    "info": os.path.join(LOG_DIR, "info.log"),
-    "warning": os.path.join(LOG_DIR, "warning.log"),
-    "error": os.path.join(LOG_DIR, "error.log"),
-}
-
-# === Logging format ===
-log_format = logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s")
-
-# === Set up handlers per log level ===
-info_handler = logging.FileHandler(LOG_FILES["info"])
-info_handler.setLevel(logging.INFO)
-info_handler.setFormatter(log_format)
-
-warning_handler = logging.FileHandler(LOG_FILES["warning"])
-warning_handler.setLevel(logging.WARNING)
-warning_handler.setFormatter(log_format)
-
-error_handler = logging.FileHandler(LOG_FILES["error"])
-error_handler.setLevel(logging.ERROR)
-error_handler.setFormatter(log_format)
-
-# === Attach handlers to root logger ===
-root_logger = logging.getLogger()
-root_logger.setLevel(logging.INFO)
-root_logger.handlers = []  # Remove default handlers
-
-root_logger.addHandler(info_handler)
-root_logger.addHandler(warning_handler)
-root_logger.addHandler(error_handler)
-root_logger.addHandler(logging.StreamHandler())  # Also log to console
-
-# === Module-level logger ===
-logger = logging.getLogger(__name__)
 
 
 router = APIRouter(
@@ -112,9 +73,9 @@ oauth.register(
     name="google",
     client_id=env_config.google_client_id,
     client_secret=env_config.google_client_secret,
-    authorize_url="https://accounts.google.com/o/oauth2/auth",
+    authorize_url=env_config.google_auth_authorize_url,
     authorize_params=None,
-    access_token_url="https://accounts.google.com/o/oauth2/token",
+    access_token_url=env_config.google_auth_token_url,
     access_token_params=None,
     refresh_token_url=None,
     redirect_uri=env_config.google_redirect_uri,
@@ -126,8 +87,8 @@ oauth.register(
     name="apple",
     client_id=env_config.apple_client_id,
     client_secret=env_config.apple_client_secret,
-    authorize_url="https://appleid.apple.com/auth/authorize",
-    access_token_url="https://appleid.apple.com/auth/token",
+    authorize_url=env_config.apple_auth_authorize_url,
+    access_token_url=env_config.apple_auth_access_token_url,
     client_kwargs={"scope": "email name"},
 )
 
@@ -191,9 +152,8 @@ async def user_registration(user_data: UserCreate, db: Session = Depends(get_db)
         TokenResponse: The JWT access token for the registered user.
     """
     try:
-        # Normalize email and username
+        # Normalize email
         normalized_email = user_data.email.lower()
-        normalized_username = user_data.username.lower()
 
         # Check if email is already registered
         existing_user = (
@@ -203,16 +163,6 @@ async def user_registration(user_data: UserCreate, db: Session = Depends(get_db)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Email already registered.",
-            )
-
-        # Check if username is already taken
-        existing_username = (
-            db.query(User).filter(User.username.ilike(normalized_username)).first()
-        )
-        if existing_username:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Username is already taken.",
             )
 
         # Validate password strength
@@ -228,7 +178,6 @@ async def user_registration(user_data: UserCreate, db: Session = Depends(get_db)
         with db.begin_nested():
             # Create a new user in the `users` table
             new_user = User(
-                username=normalized_username,
                 email=normalized_email,
                 hashed_password=hashed_password,
                 first_name=user_data.first_name,
@@ -247,12 +196,6 @@ async def user_registration(user_data: UserCreate, db: Session = Depends(get_db)
             new_user_profile = UserProfile(
                 user_id=new_user.id,
                 profile_picture=user_data.profile_picture,
-                bio=user_data.bio,
-                linkedin=user_data.linkedin,
-                twitter=user_data.twitter,
-                nationality=user_data.nationality,
-                phone_number=user_data.phone_number,
-                gender=user_data.gender,
                 otp=otp,
                 otp_created_at=datetime.now(timezone.utc),
             )
@@ -275,20 +218,22 @@ async def user_registration(user_data: UserCreate, db: Session = Depends(get_db)
             }
         )
 
-        return TokenResponse(access_token=access_token, token_type="bearer")
+        return TokenResponse(
+            access_token=access_token, token_type=env_config.token_type
+        )
 
     except SQLAlchemyError as e:
-        logger.error(f"Database error during registration: {e}")
+        system_logger.error("Database error during registration: %s", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to register user due to a server error.",
-        )
+        ) from e
     except Exception as e:
-        logger.error(f"Unexpected error during registration: {e}")
+        system_logger.error("Unexpected error during registration: %s", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An unexpected error occurred during registration.",
-        )
+        ) from e
 
 
 @router.get(
@@ -328,8 +273,8 @@ async def user_verification_via_link(
     user = db.query(User).filter(User.email == normalized_email).first()
 
     if not user:
-        logger.warning(
-            f"Verification attempt for non-existent email: {normalized_email}"
+        system_logger.warning(
+            "Verification attempt for non-existent email: %s", normalized_email
         )
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -337,26 +282,26 @@ async def user_verification_via_link(
     user_profile = db.query(UserProfile).filter(UserProfile.user_id == user.id).first()
 
     if not user_profile:
-        logger.warning(
-            f"Verification attempt for user without a profile: {normalized_email}"
+        system_logger.warning(
+            "Verification attempt for user without a profile: %s", normalized_email
         )
         raise HTTPException(status_code=404, detail="User profile not found")
 
     # Check if the user is already verified
     if user.is_verified:
-        logger.info(f"User {normalized_email} is already verified.")
+        system_logger.info("User %s is already verified.", normalized_email)
         return {"message": "This account is already verified."}
 
     # Check if OTP is valid
     if user_profile.otp != otp:
-        logger.warning(f"Invalid OTP attempt for email: {normalized_email}")
+        system_logger.warning("Invalid OTP attempt for email: %s", normalized_email)
         raise HTTPException(status_code=400, detail="Invalid OTP")
 
     # Check if OTP is expired
     if user_profile.otp_created_at:
         time_since_otp = datetime.now(timezone.utc) - user_profile.otp_created_at
         if time_since_otp.total_seconds() > 86400:  # 24 hours
-            logger.warning(f"Expired OTP attempt for email: {normalized_email}")
+            system_logger.warning("Expired OTP attempt for email: %s", normalized_email)
             raise HTTPException(
                 status_code=400,
                 detail="OTP has expired. Please request a new verification email.",
@@ -372,10 +317,10 @@ async def user_verification_via_link(
 
     # Optionally send a confirmation email
     # try:
-        # await send_confirmation_email(user.email, user.first_name)
-    #    logger.info(f"User {normalized_email} verified successfully")
+    #    await send_confirmation_email(user.email, user.first_name)
+    #    system_logger.info(f"User {normalized_email} verified successfully")
     # except Exception as email_error:
-    #    logger.error(
+    #    system_logger.error(
     #        f"Failed to send confirmation email to {normalized_email}: {email_error}"
     #    )
 
@@ -414,11 +359,13 @@ async def resend_verification_email(
     # Fetch user by email
     user = db.query(User).filter(User.email == normalized_email).first()
     if not user:
-        logger.warning(f"Resend verification attempt for non-existent email: {email}")
+        system_logger.warning(
+            "Resend verification attempt for non-existent email: %s", email
+        )
         raise HTTPException(status_code=404, detail="User not found")
 
     if user.is_verified:
-        logger.info(f"User {email} is already verified.")
+        system_logger.info("User %s is already verified.", email)
         return {"message": f"The account associated with {email} is already verified."}
 
     # Enforce throttle limit
@@ -428,7 +375,9 @@ async def resend_verification_email(
             next_allowed_request = user.otp_created_at + timedelta(
                 seconds=THROTTLE_DURATION_SECONDS
             )
-            logger.warning(f"Verification email resend throttled for email={email}")
+            system_logger.warning(
+                "Verification email resend throttled for email= %s", email
+            )
             return JSONResponse(
                 status_code=429,
                 content={
@@ -445,10 +394,10 @@ async def resend_verification_email(
 
     # Send the verification email
     # try:
-        # await send_verification_email(user.email, user.first_name, otp)
-    #    logger.info(f"Verification email resent to email={email}")
+    # await send_verification_email(user.email, user.first_name, otp)
+    #    system_logger.info(f"Verification email resent to email={email}")
     # except Exception as email_error:
-    #    logger.error(
+    #    system_logger.error(
     #        f"Failed to send verification email to email={email}: {email_error}"
     #    )
     #    raise HTTPException(
@@ -459,47 +408,40 @@ async def resend_verification_email(
     return {"message": f"Verification email has been resent to {email}."}
 
 
-@router.post("/login", summary="Login via Username or Email")
+@router.post("/login", summary="Login via  Email")
 async def user_login(
-    user_identifier: str = Body(..., embed=True, description="Email or username"),
+    user_identifier: str = Body(..., embed=True, description="Email"),
     password: str = Body(..., embed=True, description="User password"),
     db: Session = Depends(get_db),
 ):
     """
-    Allows users to log in using either their email or username.
+    Allows users to log in using their email.
 
     Args:
-        user_identifier (str): The email or username of the user.
+        user_identifier (str): The email of the user.
         password (str): The user's password.
         db (Session): The database session.
 
     Returns:
         JSONResponse: Access token, refresh token, and user details.
     """
-    logger.info(f"Login attempt by user: {user_identifier}")
+    system_logger.info("Login attempt by user: %s", user_identifier)
 
     # Normalize input to lowercase
     normalized_user_identifier = normalize_input(user_identifier)
 
-    # Identify user by email or username
-    db_user = (
-        db.query(User)
-        .filter(
-            (User.email == normalized_user_identifier)
-            | (User.username.ilike(normalized_user_identifier))
-        )
-        .first()
-    )
+    # Identify user by email
+    db_user = db.query(User).filter((User.email == normalized_user_identifier)).first()
 
     if not db_user or not verify_password(password, db_user.hashed_password):
-        logger.warning("Invalid login credentials.")
+        system_logger.warning("Invalid login credentials.")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="The provided credentials are incorrect",
         )
 
     if db_user.is_deleted:
-        logger.warning(f"Login attempt on deleted account: {db_user.email}")
+        system_logger.warning("Login attempt on deleted account: %s", db_user.email)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="This account has been deleted. Contact support for recovery.",
@@ -552,7 +494,7 @@ async def user_login(
         max_age=7 * 24 * 60 * 60,  # 7 Days Expiry
     )
 
-    logger.info(f"User {db_user.email} logged in successfully.")
+    system_logger.info("User %s logged in successfully.", db_user.email)
     return response
 
 
@@ -586,8 +528,8 @@ async def forgot_password(
     user = db.query(User).filter(User.email == normalized_email).first()
 
     if not user:
-        logger.warning(
-            f"Password reset requested for non-existent email: {normalized_email}"
+        system_logger.warning(
+            "Password reset requested for non-existent email: %s", normalized_email
         )
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -598,7 +540,9 @@ async def forgot_password(
 
         # If OTP is still valid (within 24 hours), resend the same OTP
         if time_since_last_request < 86400:  # 24 hours
-            logger.info(f"Resending existing OTP for {normalized_email} (Still valid).")
+            system_logger.info(
+                "Resending existing OTP for %s (Still valid).", normalized_email
+            )
             otp = user.otp
         else:
             # OTP expired - generate a new one
@@ -625,7 +569,7 @@ async def forgot_password(
 
     # Send OTP via email
     # await send_password_reset_email(normalized_email, user.first_name, otp)
-    logger.info(f"Password reset link sent to {normalized_email}")
+    system_logger.info(f"Password reset link sent to %s", normalized_email)
 
     return {"message": "Password reset link sent to your email address."}
 
@@ -646,7 +590,7 @@ async def request_password_reset(
     ### Response:
     - A message confirming that a password reset link has been sent to the user's email.
     """
-    logger.info(f"Password reset request for {current_user.email}")
+    system_logger.info("Password reset request for %s", current_user.email)
 
     # Generate a secure OTP
     otp = generate_random_otp()
@@ -666,7 +610,7 @@ async def request_password_reset(
 
     # Send password reset OTP via email
     # await send_password_reset_email(current_user.email, current_user.first_name, otp)
-    logger.info(f"Password reset link sent to {current_user.email}")
+    system_logger.info("Password reset link sent to %s", current_user.email)
 
     return {"message": "Password reset link sent to your email address."}
 
@@ -699,7 +643,7 @@ async def confirm_password_reset(
     )
 
     if not user:
-        logger.warning(
+        system_logger.warning(
             f"""
             Password reset failed for email {
                 payload.email} due to invalid OTP or email.
@@ -725,15 +669,15 @@ async def confirm_password_reset(
 
     # Send confirmation email
     # try:
-        # await send_password_reset_confirmation_email(user.email, user.first_name)
+    # await send_password_reset_confirmation_email(user.email, user.first_name)
     # except Exception as email_error:
-    #    logger.error(f"Failed to send password reset confirmation email: {email_error}")
+    #    system_logger.error(f"Failed to send password reset confirmation email: {email_error}")
     #    raise HTTPException(
     #        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
     #        detail="Failed to send password reset confirmation email.",
     #    ) from email_error
 
-    logger.info(f"Password reset successfully for {user.email}")
+    system_logger.info(f"Password reset successfully for email: %s", payload.email)
     return {
         "message": "Password successfully reset. You can now log in with your new password."
     }
@@ -855,18 +799,6 @@ async def submit_reset_password(
     }
 
 
-# Helper function to remove the old profile picture
-def remove_old_profile_picture(file_path: str):
-    """
-    Removes the old profile picture from the file system.
-
-    Args:
-    - file_path (str): Path of the file to be deleted.
-    """
-    if file_path and os.path.exists(file_path):
-        os.remove(file_path)
-
-
 # User login route
 @router.get(
     "/profile",
@@ -881,16 +813,16 @@ async def get_user_profile(
 
     Combines data from the User model and the UserProfile model.
     """
-    logger.info(f"Profile request for user: {current_user.email}")
+    system_logger.info("Profile request for user: %s", current_user.email)
 
     # Fetch the user's profile from the UserProfile table
     user_profile = (
         db.query(UserProfile).filter(UserProfile.user_id == current_user.id).first()
     )
-    logger.info(f"User profile found: {user_profile}")
+    system_logger.info("User profile found: %s", user_profile)
 
     if not user_profile:
-        logger.error(f"User profile not found for user: {current_user.email}")
+        system_logger.error("User profile not found for user: %s", current_user.email)
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User profile not found.",
@@ -899,7 +831,6 @@ async def get_user_profile(
     # Construct the response using both User and UserProfile data
     user_data = UserProfileResponse(
         id=current_user.id,
-        username=current_user.username,
         email=current_user.email,
         first_name=current_user.first_name,
         last_name=current_user.last_name,
@@ -911,133 +842,6 @@ async def get_user_profile(
         updated_at=current_user.updated_at,
         # Fields from UserProfile
         profile_picture=user_profile.profile_picture,
-        bio=user_profile.bio,
-        nationality=user_profile.nationality,
-        linkedin=user_profile.linkedin,
-        twitter=user_profile.twitter,
-        phone_number=user_profile.phone_number,
-        gender=user_profile.gender,
     )
 
     return user_data
-
-
-@router.put(
-    "/profile/update",
-    response_model=UserProfileResponse,
-    summary="Update User Profile Information",
-)
-async def update_profile(
-    user_data: UserUpdate = Body(...),  # Expecting JSON data for profile updates
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """
-    Allows the user to update their profile information in both `users` and `user_profiles` tables.
-
-    ### Parameters:
-    - `user_data` (JSON Body): Contains fields like `email`, `first_name`, `last_name`, `linkedin`, `twitter`, and `profile_picture_url` (if changed).
-
-    ### Response:
-    - The updated user profile data.
-    """
-    logger.info(f"User {current_user.email} is attempting to update their profile.")
-
-    try:
-        refresh_needed = False  # Track if a token refresh is required
-
-        # Use a transaction to ensure ACID compliance
-        with db.begin():
-            # ✅ Update fields in the `users` table
-            if user_data.email and user_data.email.lower() != current_user.email:
-                normalized_email = user_data.email.lower()
-                existing_user = (
-                    db.query(User).filter(User.email == normalized_email).first()
-                )
-                if existing_user and existing_user.id != current_user.id:
-                    raise HTTPException(status_code=400, detail="Email already in use")
-                current_user.email = normalized_email
-                refresh_needed = True  # Email affects authentication
-
-            if user_data.first_name and user_data.first_name != current_user.first_name:
-                current_user.first_name = user_data.first_name
-                refresh_needed = True  # Name change requires new JWT
-
-            if user_data.last_name and user_data.last_name != current_user.last_name:
-                current_user.last_name = user_data.last_name
-                refresh_needed = True  # Name change requires new JWT
-
-            # ✅ Update fields in the `user_profiles` table
-            user_profile = (
-                db.query(UserProfile)
-                .filter(UserProfile.user_id == current_user.id)
-                .first()
-            )
-            logger.info(f"User profile found: {user_profile}")
-            if not user_profile:
-                raise HTTPException(status_code=404, detail="User profile not found.")
-
-            if user_data.bio:
-                user_profile.bio = user_data.bio
-            if user_data.nationality:
-                user_profile.nationality = user_data.nationality
-            if user_data.phone_number:
-                user_profile.phone_number = user_data.phone_number
-            if user_data.linkedin:
-                user_profile.linkedin = user_data.linkedin
-            if user_data.twitter:
-                user_profile.twitter = user_data.twitter
-            if user_data.gender:
-                user_profile.gender = user_data.gender
-
-            # ✅ Handle Profile Picture URL (frontend handles actual image upload)
-            if user_data.profile_picture:
-                user_profile.profile_picture = user_data.profile_picture
-
-            # ✅ Update `updated_at` timestamp for both tables
-            current_user.updated_at = datetime.now(timezone.utc)
-            user_profile.updated_at = datetime.now(timezone.utc)
-
-            # Flush changes to the database
-            db.flush()
-
-        # Refresh the objects to reflect the latest changes
-        db.refresh(current_user)
-        db.refresh(user_profile)
-
-        logger.info(f"Profile updated successfully for user: {current_user.email}")
-
-        # ✅ Return success response
-        return UserProfileResponse(
-            id=current_user.id,
-            username=current_user.username,
-            email=current_user.email,
-            first_name=current_user.first_name,
-            last_name=current_user.last_name,
-            is_active=current_user.is_active,
-            is_verified=current_user.is_verified,
-            is_admin=current_user.is_admin,
-            is_super_admin=current_user.is_super_admin,
-            created_at=current_user.created_at,
-            updated_at=current_user.updated_at,
-            profile_picture=user_profile.profile_picture,
-            bio=user_profile.bio,
-            nationality=user_profile.nationality,
-            linkedin=user_profile.linkedin,
-            twitter=user_profile.twitter,
-            phone_number=user_profile.phone_number,
-            gender=user_profile.gender,
-        )
-
-    except SQLAlchemyError as e:
-        logger.error(f"Database error during profile update: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to update profile due to a server error.",
-        )
-    except Exception as e:
-        logger.error(f"Unexpected error during profile update: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred during profile update.",
-        )

@@ -1,5 +1,3 @@
-import logging
-import os
 import secrets
 import string
 from datetime import datetime, timedelta, timezone
@@ -19,51 +17,16 @@ from src.mastercard_solution_tech_stack_agent.api.schemas import (
 from src.mastercard_solution_tech_stack_agent.config.appconfig import env_config
 from src.mastercard_solution_tech_stack_agent.config.db_setup import get_db
 from src.mastercard_solution_tech_stack_agent.database.schemas import User
+from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import (
+    system_logger,
+)
+
 # from src.mastercard_solution_tech_stack_agent.utilities.email_utils import (
 #    send_account_deletion_confirmation_email,
 #    send_account_deletion_verification_email,
 #    send_confirmation_email,
 # )
 
-# === Log directory setup ===
-LOG_DIR = "src/mastercard_solution_tech_stack_agent/logs"
-os.makedirs(LOG_DIR, exist_ok=True)  # Ensure the logs directory exists
-
-# === Log file paths ===
-LOG_FILES = {
-    "info": os.path.join(LOG_DIR, "info.log"),
-    "warning": os.path.join(LOG_DIR, "warning.log"),
-    "error": os.path.join(LOG_DIR, "error.log"),
-}
-
-# === Logging format ===
-log_format = logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s")
-
-# === Set up handlers per log level ===
-info_handler = logging.FileHandler(LOG_FILES["info"])
-info_handler.setLevel(logging.INFO)
-info_handler.setFormatter(log_format)
-
-warning_handler = logging.FileHandler(LOG_FILES["warning"])
-warning_handler.setLevel(logging.WARNING)
-warning_handler.setFormatter(log_format)
-
-error_handler = logging.FileHandler(LOG_FILES["error"])
-error_handler.setLevel(logging.ERROR)
-error_handler.setFormatter(log_format)
-
-# === Attach handlers to root logger ===
-root_logger = logging.getLogger()
-root_logger.setLevel(logging.INFO)
-root_logger.handlers = []  # Remove default handlers
-
-root_logger.addHandler(info_handler)
-root_logger.addHandler(warning_handler)
-root_logger.addHandler(error_handler)
-root_logger.addHandler(logging.StreamHandler())  # Also log to console
-
-# === Module-level logger ===
-logger = logging.getLogger(__name__)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
@@ -193,8 +156,8 @@ def verify_super_admin_or_admin(
         email: str = normalize_input(payload.get("sub"))
         if email is None:
             raise credentials_exception
-    except JWTError:
-        raise credentials_exception
+    except JWTError as exc:
+        raise credentials_exception from exc
 
     # Check if the user is the super-admin
     if email == normalize_input(env_config.super_admin_email):
@@ -224,8 +187,8 @@ def get_current_user(
         user_email = normalize_input(payload.get("sub"))
         if user_email is None:
             raise credentials_exception
-    except JWTError:
-        raise credentials_exception
+    except JWTError as exc:
+        raise credentials_exception from exc
 
     user = db.query(User).filter(User.email == user_email).first()
     if user is None:
@@ -251,9 +214,9 @@ def hash_password(password: str) -> str:
     ### Returns:
     - `str`: The hashed password.
     """
-    logger.info("Hashing password")
+    system_logger.info("Hashing password")
     hashed_password = pwd_context.hash(password)
-    logger.info("Password hashed successfully")
+    system_logger.info("Password hashed successfully")
     return hashed_password
 
 
@@ -268,12 +231,12 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     ### Returns:
     - `bool`: True if the password matches, False otherwise.
     """
-    logger.info("Verifying password")
+    system_logger.info("Verifying password")
     is_valid = pwd_context.verify(plain_password, hashed_password)
     if is_valid:
-        logger.info("Password verified successfully")
+        system_logger.info("Password verified successfully")
     else:
-        logger.warning("Password verification failed")
+        system_logger.warning("Password verification failed")
     return is_valid
 
 
@@ -289,7 +252,7 @@ def create_access_token(data: dict, expires_delta: timedelta = timedelta(hours=2
     ### Returns:
     - `str`: The encoded JWT token.
     """
-    logger.info("Creating access token with 24-hour expiry")
+    system_logger.info("Creating access token with 24-hour expiry")
 
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + expires_delta
@@ -301,7 +264,7 @@ def create_access_token(data: dict, expires_delta: timedelta = timedelta(hours=2
     encoded_jwt = jwt.encode(
         to_encode, env_config.secret_key, algorithm=env_config.algorithm
     )
-    logger.info("Access token created successfully")
+    system_logger.info("Access token created successfully")
     return encoded_jwt
 
 
@@ -316,7 +279,7 @@ def create_refresh_token(data: dict, expires_delta: timedelta = timedelta(days=7
     ### Returns:
     - `str`: The encoded JWT refresh token.
     """
-    logger.info("Creating refresh token with 7-day expiry")
+    system_logger.info("Creating refresh token with 7-day expiry")
 
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + expires_delta
@@ -325,7 +288,7 @@ def create_refresh_token(data: dict, expires_delta: timedelta = timedelta(days=7
     encoded_jwt = jwt.encode(
         to_encode, env_config.secret_key, algorithm=env_config.algorithm
     )
-    logger.info("Refresh token created successfully")
+    system_logger.info("Refresh token created successfully")
     return encoded_jwt
 
 
@@ -352,9 +315,11 @@ def get_current_admin_or_super_admin(current_user: dict = Depends(get_current_us
         else ("admin" if current_user.is_admin else "user")
     )
 
-    logger.info(f"Checking admin or super-admin privileges for user: {email}")
+    system_logger.info("Checking admin or super-admin privileges for user: %s", email)
     if role not in ["admin", "super-admin"]:
-        logger.warning(f"User {email} does not have admin or super-admin privileges")
+        system_logger.warning(
+            "User %s does not have admin or super-admin privileges", email
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized"
         )
@@ -380,9 +345,9 @@ def get_current_super_admin(current_user: dict = Depends(get_current_user)):
     )
     role = current_user.get("role") if isinstance(current_user, dict) else "user"
 
-    logger.info(f"Checking super-admin privileges for user: {email}")
+    system_logger.info("Checking super-admin privileges for user: %s", email)
     if role != "super-admin":
-        logger.warning(f"User {email} does not have super-admin privileges")
+        system_logger.warning("User %s does not have super-admin privileges", email)
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized"
         )
@@ -398,7 +363,7 @@ async def health_check():
     ### Response:
     - Returns a JSON response indicating the service status.
     """
-    logger.info("Health check performed.")
+    system_logger.info("Health check performed.")
     return {"status": "healthy"}
 
 
@@ -407,7 +372,7 @@ async def health_check():
 async def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
 ):
-    logger.info(f"Login attempt by user: {form_data.username}")
+    system_logger.info("Login attempt by user: %s", form_data.username)
 
     # Normalize email or username
     normalized_identifier = normalize_input(form_data.username)
@@ -436,7 +401,7 @@ async def login_for_access_token(
             max_age=7 * 24 * 60 * 60,  # 7 days
         )
 
-        logger.info("Super-admin login successful.")
+        system_logger.info("Super-admin login successful.")
         return response
 
     # Regular user login
@@ -450,7 +415,7 @@ async def login_for_access_token(
     )
 
     if not user or not verify_password(form_data.password, user.hashed_password):
-        logger.warning("Invalid login credentials.")
+        system_logger.warning("Invalid login credentials.")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username, email, or password",
@@ -458,7 +423,7 @@ async def login_for_access_token(
         )
 
     if not user.is_verified:
-        logger.warning("Login attempt on unverified account.")
+        system_logger.warning("Login attempt on unverified account.")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Account is not verified"
         )
@@ -483,7 +448,7 @@ async def login_for_access_token(
         max_age=7 * 24 * 60 * 60,  # 7 days
     )
 
-    logger.info(f"User {user.email} logged in successfully.")
+    system_logger.info("User %s logged in successfully.", user.email)
     return response
 
 
@@ -492,7 +457,7 @@ async def refresh_access_token(response: Response, db: Session = Depends(get_db)
     """
     Refresh the access token using the refresh token stored in HTTP-only cookies.
     """
-    logger.info("Refreshing access token...")
+    system_logger.info("Refreshing access token...")
 
     credentials_exception = HTTPException(
         status_code=401,
@@ -510,8 +475,8 @@ async def refresh_access_token(response: Response, db: Session = Depends(get_db)
         email: str = normalize_input(payload.get("sub"))
         if email is None:
             raise credentials_exception
-    except JWTError:
-        raise credentials_exception
+    except JWTError as exc:
+        raise credentials_exception from exc
 
     # Fetch user
     user = db.query(User).filter(User.email == email).first()
@@ -549,7 +514,7 @@ async def check_admin_status(
         if isinstance(current_admin, dict)
         else current_admin.email
     )
-    logger.info(f"Admin or Super-admin {email} is checking admin status")
+    system_logger.info("Admin or Super-admin %s is checking admin status", email)
     return {"message": "You have admin access!"}
 
 
@@ -569,7 +534,7 @@ async def admin_protected_route(
         if isinstance(current_admin, dict)
         else current_admin.email
     )
-    logger.info(f"Admin-protected route accessed by: {email}")
+    system_logger.info("Admin-protected route accessed by: %s", email)
     return {"message": "Welcome to the admin-protected route!"}
 
 
@@ -589,7 +554,7 @@ async def check_super_admin_status(
         if isinstance(current_super_admin, dict)
         else current_super_admin.email
     )
-    logger.info(f"Super-admin {email} is checking status")
+    system_logger.info("Super-admin %s is checking status", email)
     return {"message": "You are a super-admin!"}
 
 
@@ -608,7 +573,7 @@ async def super_admin_protected_route(
         if isinstance(current_super_admin, dict)
         else current_super_admin.email
     )
-    logger.info(f"Super-admin {email} is accessing a protected route")
+    system_logger.info(f"Super-admin {email} is accessing a protected route")
     return {"message": "Welcome, super-admin!"}
 
 
@@ -623,10 +588,10 @@ async def request_account_deletion(
     ### Response:
     - A message confirming that an OTP has been sent to the user's email.
     """
-    logging.info("Requesting account deletion")
+    system_logger.info("Requesting account deletion")
 
     # Normalize email
-    normalized_email = normalize_input(current_user.email)
+    normalize_input(current_user.email)
     otp = generate_random_otp()
     current_user.otp = otp
     db.commit()
@@ -634,20 +599,18 @@ async def request_account_deletion(
     # await send_account_deletion_verification_email(
     #    normalized_email, current_user.first_name, otp
     # )
-    logging.info("OTP sent to user's email")
-    return {
-        f"message: Your OTP is {otp}. Please use it to confirm account deletion."
-    }
-    #return {
+    system_logger.info("OTP sent to user's email")
+    return {f"message: Your OTP is {otp}. Please use it to confirm account deletion."}
+    # return {
     #    "message": "OTP sent to your registered email address. Please use it to confirm account deletion."
-    #}
+    # }
 
 
 @router.post("/confirm-account-deletion", summary="Confirm Account Deletion")
 async def confirm_account_deletion(
     payload: ConfirmAccountDeletion, db: Session = Depends(get_db)
 ):
-    logging.info("Confirming account deletion")
+    system_logger.info("Confirming account deletion")
 
     # Normalize email
     normalized_email = normalize_input(payload.email)
@@ -660,7 +623,7 @@ async def confirm_account_deletion(
     )
 
     if not user:
-        logging.warning("Invalid OTP or email")
+        system_logger.warning("Invalid OTP or email")
         raise HTTPException(status_code=400, detail="Invalid OTP or email")
 
     # Soft delete the user account by marking `is_deleted` as True
@@ -670,7 +633,7 @@ async def confirm_account_deletion(
 
     # Send confirmation email for account deletion
     # await send_account_deletion_confirmation_email(payload.email, user.first_name)
-    logging.info("Account deleted successfully")
+    system_logger.info("Account deleted successfully")
     return {"message": "Your account has been successfully deleted."}
 
 
@@ -678,7 +641,7 @@ async def confirm_account_deletion(
 async def recover_account(
     payload: RecoverAccountRequest, db: Session = Depends(get_db)
 ):
-    logging.info("Recovering account")
+    system_logger.info("Recovering account")
 
     # Find the user based on the email and OTP, and check if the account is soft-deleted
     user = (
@@ -692,7 +655,7 @@ async def recover_account(
     )
 
     if not user:
-        logging.warning("Invalid OTP or email")
+        system_logger.warning("Invalid OTP or email")
         raise HTTPException(status_code=400, detail="Invalid OTP or email")
 
     # Recover the account
@@ -702,6 +665,6 @@ async def recover_account(
 
     # Send a confirmation email
     # await send_confirmation_email(user.email, user.first_name)
-    logging.info("Account recovered successfully")
+    system_logger.info("Account recovered successfully")
 
     return {"message": "Account successfully recovered"}

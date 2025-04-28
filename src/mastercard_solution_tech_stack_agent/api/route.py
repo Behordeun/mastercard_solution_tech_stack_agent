@@ -1,5 +1,3 @@
-import logging
-import os
 import re
 from datetime import datetime
 from typing import Annotated, Union
@@ -7,6 +5,7 @@ from typing import Annotated, Union
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from langchain_core.messages import AIMessage
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from src.mastercard_solution_tech_stack_agent.api.auth import get_current_user
@@ -20,42 +19,13 @@ from src.mastercard_solution_tech_stack_agent.database.pd_db import (
     get_conversation_history,
 )
 from src.mastercard_solution_tech_stack_agent.database.schemas import AIMessageResponse
+from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import (
+    system_logger,
+)
 from src.mastercard_solution_tech_stack_agent.services.manager import (
     chat_event,
     create_chat,
 )
-
-# === Log directory setup ===
-LOG_DIR = "src/mastercard_solution_tech_stack_agent/logs"
-os.makedirs(LOG_DIR, exist_ok=True)
-
-# === Log file paths ===
-LOG_FILES = {
-    "info": os.path.join(LOG_DIR, "info.log"),
-    "warning": os.path.join(LOG_DIR, "warning.log"),
-    "error": os.path.join(LOG_DIR, "error.log"),
-}
-
-# === Logging format ===
-log_format = logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s")
-
-# === Set up handlers per log level ===
-handlers = []
-for level, path in LOG_FILES.items():
-    handler = logging.FileHandler(path)
-    handler.setLevel(getattr(logging, level.upper()))
-    handler.setFormatter(log_format)
-    handlers.append(handler)
-
-# === Attach handlers to root logger ===
-root_logger = logging.getLogger()
-root_logger.setLevel(logging.INFO)
-root_logger.handlers = []  # Remove existing
-for h in handlers:
-    root_logger.addHandler(h)
-root_logger.addHandler(logging.StreamHandler())  # Console
-
-logger = logging.getLogger(__name__)
 
 router = APIRouter(
     responses={
@@ -102,7 +72,7 @@ async def chat(
     )
 
     try:
-        logger.info(f"TSA145: Received input: {message.message}")
+        system_logger.info("TSA145: Received input: %s", message.message)
 
         # Get conversation history (but not using it in this endpoint)
         _ = get_conversation_history(
@@ -111,7 +81,7 @@ async def chat(
 
         # Process the chat
         response = await chat_event(db, message, user_id=current_user.id)
-        logger.info(f"TSA145 Response: {response}")
+        system_logger.info("TSA145 Response: %s", response)
         ai_message = _extract_ai_message(response)
 
         # Determine response ID
@@ -121,7 +91,9 @@ async def chat(
             else getattr(ai_message, "id", None)
         )
         if response_id is None or not str(response_id).isdigit():
-            logger.warning("Invalid or missing response ID. Generating a fallback ID.")
+            system_logger.warning(
+                "Invalid or missing response ID. Generating a fallback ID."
+            )
             response_id = int(datetime.now().timestamp())
 
         # Save response
@@ -138,9 +110,9 @@ async def chat(
             db.add(new_response)
             db.commit()
             db.refresh(new_response)
-        except Exception as db_err:
+        except SQLAlchemyError as db_err:
             db.rollback()
-            logger.error(f"DB insert failed: {db_err}", exc_info=True)
+            system_logger.error("DB insert failed: %s", db_err, exc_info=True)
             return JSONResponse(
                 content={"content": "Server error while saving response."},
                 status_code=500,
@@ -157,11 +129,11 @@ async def chat(
             created_at=new_response.created_at,
         )
 
-    except Exception as e:
-        logger.error(f"Error in /chat-ai: {e}", exc_info=True)
+    except SQLAlchemyError as e:
+        system_logger.error("Database error in /chat-ai: %s", e, exc_info=True)
         return JSONResponse(
             content={
-                "content": "An error occurred. Please try again or contact support."
+                "content": "A database error occurred. Please try again or contact support."
             },
             status_code=500,
         )
@@ -188,9 +160,10 @@ async def get_chat_history(
             )
 
         return conversation_history
-
-    except Exception as e:
-        logger.error(f"Error fetching chat history: {e}", exc_info=True)
+    except SQLAlchemyError as e:
+        system_logger.error(
+            "Database error fetching chat history: %s", e, exc_info=True
+        )
         return JSONResponse(
             content={"content": "Failed to retrieve chat history."},
             status_code=500,
