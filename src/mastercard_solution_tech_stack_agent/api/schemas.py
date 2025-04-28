@@ -78,7 +78,6 @@ class UserBase(BaseModel):
     email: EmailStr
     first_name: str
     last_name: str
-    username: str
 
 
 # Define a Pydantic schema for the request body
@@ -88,7 +87,6 @@ class VerificationRequest(BaseModel):
 
 
 class UserCreate(UserBase):
-    username: str
     email: EmailStr
     password: str
     first_name: str
@@ -97,15 +95,6 @@ class UserCreate(UserBase):
     password: str = Field(
         ..., min_length=8, description="Password must be at least 8 characters long."
     )
-
-    @field_validator("username")
-    def validate_username(cls, v):
-        """Ensure the username starts with a letter and contains only letters, numbers, or underscores."""
-        if not re.match(r"^[A-Za-z][A-Za-z0-9_]*$", v):
-            raise ValueError(
-                "Invalid username. It must start with a letter and contain only alphabets, numbers, or underscores."
-            )
-        return v.strip()
 
     @field_validator("password")
     def password_strength(cls, v):
