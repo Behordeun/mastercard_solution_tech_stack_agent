@@ -41,7 +41,8 @@ LOG_FILES = {
 }
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
+
 
 # Password hashing context using bcrypt
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -104,7 +105,6 @@ def get_user_info(user):
             user.email,
             user.first_name,
             user.last_name,
-            user.username,
             user.is_expert,
         )
     except AttributeError:
@@ -114,7 +114,6 @@ def get_user_info(user):
             getattr(user, "email", "no-email"),
             getattr(user, "first_name", "Unknown"),
             getattr(user, "last_name", "Unknown"),
-            getattr(user, "username", "no-username"),
             getattr(user, "is_expert", False),
         )
 
@@ -387,12 +386,12 @@ async def login_for_access_token(
 ):
     system_logger.info("Login attempt by user: %s", form_data.username)
 
-    # Normalize email or username
-    normalized_identifier = normalize_input(form_data.username)
+    # Normalize email
+    normalized_email = normalize_input(form_data.username)
 
     # Super-admin login
     if (
-        normalized_identifier == normalize_input(env_config.super_admin_email)
+        normalized_email == normalize_input(env_config.super_admin_email)
         and form_data.password == env_config.super_admin_password
     ):
         access_token = create_access_token(
@@ -418,20 +417,13 @@ async def login_for_access_token(
         return response
 
     # Regular user login
-    user = (
-        db.query(User)
-        .filter(
-            (User.email == normalized_identifier)
-            | (User.username == normalized_identifier)
-        )
-        .first()
-    )
+    user = db.query(User).filter((User.email == normalized_email)).first()
 
     if not user or not verify_password(form_data.password, user.hashed_password):
         system_logger.error("Invalid login credentials.")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username, email, or password",
+            detail="Incorrect email, email, or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -461,7 +453,10 @@ async def login_for_access_token(
         max_age=7 * 24 * 60 * 60,  # 7 days
     )
 
-    system_logger.info("User %s logged in successfully.", user.email)
+    system_logger.info(
+        "User logged in successfully.",
+        additional_info={"email": user.email},
+    )
     return response
 
 

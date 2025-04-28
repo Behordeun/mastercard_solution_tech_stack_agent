@@ -55,9 +55,13 @@ class Logger:
     ) -> str:
         """Format the complete log message with all metadata."""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        current_function, parent_function = self._get_caller_info(
-            error.__traceback__ if error else None
-        )
+
+        if isinstance(error, Exception):
+            current_function, parent_function = self._get_caller_info(
+                error.__traceback__
+            )
+        else:
+            current_function, parent_function = self._get_caller_info(None)
 
         log_msg = [
             "=" * 80,
@@ -78,21 +82,21 @@ class Logger:
                 ]
             )
 
-            if exc_info:
+            if exc_info and isinstance(error, Exception):
                 try:
                     trace_lines = traceback.format_exception(
                         type(error), error, error.__traceback__
                     )
                     log_msg.extend(["FULL TRACEBACK:", "".join(trace_lines)])
-                except Exception as e:
-                    log_msg.append(f"Failed to format traceback: {str(e)}")
+                except (TypeError, ValueError) as e:
+                    log_msg.append(f"Failed to format traceback: {e}")
 
         default_context = {
             "ai_engineer": "Muhammad",
             "environment": env_config.env,
         }
 
-        if additional_info:
+        if additional_info and isinstance(additional_info, dict):
             default_context.update(additional_info)
 
         log_msg.extend(
@@ -117,7 +121,7 @@ class Logger:
             with open(self.log_files[level], "a", encoding="utf-8") as f:
                 f.write(message)
             self._log_cache.add(log_hash)
-        except Exception as e:
+        except OSError as e:
             print(f"Failed to write log: {e}", file=sys.stderr)
 
     def info(
@@ -168,7 +172,7 @@ class Logger:
                     self._log_cache.clear()
                 except FileNotFoundError:
                     pass
-        except Exception as e:
+        except OSError as e:
             print(f"Failed to clear logs: {str(e)}", file=sys.stderr)
 
 

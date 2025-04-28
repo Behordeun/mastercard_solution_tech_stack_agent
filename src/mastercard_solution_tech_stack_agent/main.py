@@ -8,7 +8,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 
 from src.mastercard_solution_tech_stack_agent.api import (
@@ -110,9 +109,20 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 
-@app.exception_handler(StarletteHTTPException)
-async def http_exception_handler(request: Request, exc: StarletteHTTPException):
-    system_logger.error(f"HTTP Exception: {exc.status_code} - {exc.detail}")
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """
+    Custom handler for HTTP exceptions.
+    """
+    system_logger.error(
+        exc,  # Pass the exception object
+        additional_info={
+            "status_code": exc.status_code,
+            "detail": exc.detail,
+            "request_url": str(request.url),
+        },
+        exc_info=True,  # Include traceback information
+    )
     return JSONResponse(
         status_code=exc.status_code,
         content={"detail": exc.detail},
