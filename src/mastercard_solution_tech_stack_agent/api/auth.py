@@ -330,7 +330,7 @@ def get_current_admin_or_super_admin(current_user: dict = Depends(get_current_us
 
     system_logger.info("Checking admin or super-admin privileges for user: %s", email)
     if role not in ["admin", "super-admin"]:
-        system_logger.warning(
+        system_logger.error(
             "User %s does not have admin or super-admin privileges", email
         )
         raise HTTPException(
@@ -360,7 +360,7 @@ def get_current_super_admin(current_user: dict = Depends(get_current_user)):
 
     system_logger.info("Checking super-admin privileges for user: %s", email)
     if role != "super-admin":
-        system_logger.warning("User %s does not have super-admin privileges", email)
+        system_logger.error("User %s does not have super-admin privileges", email)
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized"
         )
@@ -428,7 +428,7 @@ async def login_for_access_token(
     )
 
     if not user or not verify_password(form_data.password, user.hashed_password):
-        system_logger.warning("Invalid login credentials.")
+        system_logger.error("Invalid login credentials.")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username, email, or password",
@@ -436,7 +436,7 @@ async def login_for_access_token(
         )
 
     if not user.is_verified:
-        system_logger.warning("Login attempt on unverified account.")
+        system_logger.error("Login attempt on unverified account.")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Account is not verified"
         )
@@ -636,7 +636,7 @@ async def confirm_account_deletion(
     )
 
     if not user:
-        system_logger.warning("Invalid OTP or email")
+        system_logger.error("Invalid OTP or email")
         raise HTTPException(status_code=400, detail="Invalid OTP or email")
 
     # Soft delete the user account by marking `is_deleted` as True
@@ -668,7 +668,7 @@ async def recover_account(
     )
 
     if not user:
-        system_logger.warning("Invalid OTP or email")
+        system_logger.error("Invalid OTP or email")
         raise HTTPException(status_code=400, detail="Invalid OTP or email")
 
     # Recover the account

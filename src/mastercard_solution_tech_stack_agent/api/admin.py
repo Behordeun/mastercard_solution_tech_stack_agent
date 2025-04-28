@@ -103,7 +103,7 @@ async def admin_login(form_data: Login, db: Session = Depends(get_db)):
     )
 
     if not admin or not verify_password(form_data.password, admin.hashed_password):
-        system_logger.warning(
+        system_logger.error(
             "Invalid login attempt for admin email: %s", normalized_email
         )
         raise HTTPException(
@@ -155,7 +155,7 @@ async def update_admin_credentials(
         # Check if the email is already taken by another user
         existing_user = db.query(User).filter(User.email == normalized_email).first()
         if existing_user and existing_user.id != admin_id:
-            system_logger.warning(
+            system_logger.error(
                 "Email %s is already in use by another user", credentials.email
             )
             raise HTTPException(status_code=400, detail="Email is already taken")
@@ -181,7 +181,7 @@ async def suspend_user_account(
     system_logger.info("Admin %s is suspending user ID: %s", admin_email, user_id)
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        system_logger.warning("User ID %s not found for suspension.", user_id)
+        system_logger.error("User ID %s not found for suspension.", user_id)
         raise HTTPException(status_code=404, detail="User not found")
 
     user.is_active = False
@@ -221,7 +221,7 @@ async def reactivate_user_account(
         raise HTTPException(status_code=404, detail="User not found")
 
     if user.is_active:
-        system_logger.warning("User ID %s account is already active", user_id)
+        system_logger.error("User ID %s account is already active", user_id)
         raise HTTPException(status_code=400, detail="User account is already active")
 
     user.is_active = True  # Set the user's account as active

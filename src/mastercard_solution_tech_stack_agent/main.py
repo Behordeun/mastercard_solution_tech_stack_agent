@@ -103,7 +103,7 @@ async def serve_ui(request: Request):
 # === Global Exception Logging ===
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    system_logger.error("Unhandled Exception: %s", exc, exc_info=True)
+    system_logger.error(exc, exc_info=True)  # Pass the exception object
     return JSONResponse(
         status_code=500,
         content={"detail": "An unexpected error occurred. Please try again later."},
@@ -112,7 +112,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
-    system_logger.warning("HTTP Exception: %s", exc.status_code - exc.detail)
+    system_logger.error(f"HTTP Exception: {exc.status_code} - {exc.detail}")
     return JSONResponse(
         status_code=exc.status_code,
         content={"detail": exc.detail},

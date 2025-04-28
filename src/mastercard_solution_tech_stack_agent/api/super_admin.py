@@ -98,7 +98,7 @@ async def super_admin_login(
 
     # Verify the provided credentials
     if not verify_password(form_data.password, super_admin.hashed_password):
-        system_logger.warning("Failed login attempt for %s.", normalized_email)
+        system_logger.error("Failed login attempt for %s.", normalized_email)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -224,7 +224,7 @@ async def revoke_admin_access(
         raise HTTPException(status_code=404, detail="User not found")
 
     if not user.is_admin:
-        system_logger.warning("User %s is not an admin.", normalized_email)
+        system_logger.error("User %s is not an admin.", normalized_email)
         raise HTTPException(status_code=400, detail="User is not an admin")
 
     # Revoke admin access
@@ -310,7 +310,7 @@ async def suspend_user_account(
         raise HTTPException(status_code=404, detail="User not found")
 
     if not user.is_active:
-        system_logger.warning("User with ID %s account is already suspended.", user_id)
+        system_logger.error("User with ID %s account is already suspended.", user_id)
         raise HTTPException(status_code=400, detail="User account is already suspended")
 
     user.is_active = False  # Set the user's account as inactive (suspended)
@@ -345,7 +345,7 @@ async def reactivate_user_account(
         raise HTTPException(status_code=404, detail="User not found")
 
     if user.is_active:
-        system_logger.warning("User with ID %s account is already active.", user_id)
+        system_logger.error("User with ID %s account is already active.", user_id)
         raise HTTPException(status_code=400, detail="User account is already active")
 
     user.is_active = True  # Set the user's account as active

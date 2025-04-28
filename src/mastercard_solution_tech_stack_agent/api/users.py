@@ -286,7 +286,7 @@ async def user_verification_via_link(
     user = db.query(User).filter(User.email == normalized_email).first()
 
     if not user:
-        system_logger.warning(
+        system_logger.error(
             "Verification attempt for non-existent email: %s", normalized_email
         )
         raise HTTPException(status_code=404, detail="User not found")
@@ -295,7 +295,7 @@ async def user_verification_via_link(
     user_profile = db.query(UserProfile).filter(UserProfile.user_id == user.id).first()
 
     if not user_profile:
-        system_logger.warning(
+        system_logger.error(
             "Verification attempt for user without a profile: %s", normalized_email
         )
         raise HTTPException(status_code=404, detail="User profile not found")
@@ -307,14 +307,14 @@ async def user_verification_via_link(
 
     # Check if OTP is valid
     if user_profile.otp != otp:
-        system_logger.warning("Invalid OTP attempt for email: %s", normalized_email)
+        system_logger.error()("Invalid OTP attempt for email: %s", normalized_email)
         raise HTTPException(status_code=400, detail="Invalid OTP")
 
     # Check if OTP is expired
     if user_profile.otp_created_at:
         time_since_otp = datetime.now(timezone.utc) - user_profile.otp_created_at
         if time_since_otp.total_seconds() > 86400:  # 24 hours
-            system_logger.warning("Expired OTP attempt for email: %s", normalized_email)
+            system_logger.error("Expired OTP attempt for email: %s", normalized_email)
             raise HTTPException(
                 status_code=400,
                 detail="OTP has expired. Please request a new verification email.",
@@ -372,7 +372,7 @@ async def resend_verification_email(
     # Fetch user by email
     user = db.query(User).filter(User.email == normalized_email).first()
     if not user:
-        system_logger.warning(
+        system_logger.error(
             "Resend verification attempt for non-existent email: %s", email
         )
         raise HTTPException(status_code=404, detail="User not found")
@@ -388,7 +388,7 @@ async def resend_verification_email(
             next_allowed_request = user.otp_created_at + timedelta(
                 seconds=THROTTLE_DURATION_SECONDS
             )
-            system_logger.warning(
+            system_logger.error(
                 "Verification email resend throttled for email= %s", email
             )
             return JSONResponse(
@@ -423,7 +423,7 @@ async def resend_verification_email(
 
 @router.post("/login", summary="Login via  Email")
 async def user_login(
-    user_identifier: str = Body(..., embed=True, description="Email"),
+    email: str = Body(..., embed=True, description="Email"),
     password: str = Body(..., embed=True, description="User password"),
     db: Session = Depends(get_db),
 ):
@@ -431,30 +431,35 @@ async def user_login(
     Allows users to log in using their email.
 
     Args:
-        user_identifier (str): The email of the user.
+        email (str): The email of the user.
         password (str): The user's password.
         db (Session): The database session.
 
     Returns:
         JSONResponse: Access token, refresh token, and user details.
     """
-    system_logger.info("Login attempt by user: %s", user_identifier)
+    system_logger.info("Login attempt by user", additional_info={"email": email})
 
     # Normalize input to lowercase
-    normalized_user_identifier = normalize_input(user_identifier)
+    normalized_email = normalize_input(email)
 
     # Identify user by email
-    db_user = db.query(User).filter((User.email == normalized_user_identifier)).first()
+    db_user = db.query(User).filter((User.email == normalized_email)).first()
+
+    # Fetch the user's profile from the UserProfile table
+    user_profile = (
+        db.query(UserProfile).filter(UserProfile.user_id == db_user.id).first()
+    )
 
     if not db_user or not verify_password(password, db_user.hashed_password):
-        system_logger.warning("Invalid login credentials.")
+        system_logger.error("Invalid login credentials.")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="The provided credentials are incorrect",
         )
 
     if db_user.is_deleted:
-        system_logger.warning("Login attempt on deleted account: %s", db_user.email)
+        system_logger.error("Login attempt on deleted account: %s", db_user.email)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="This account has been deleted. Contact support for recovery.",
@@ -474,7 +479,7 @@ async def user_login(
             "user_name": db_user.first_name,
             "user_id": db_user.id,
             "is_verified": db_user.is_verified,
-            "profile_picture": db_user.profile_picture,
+            "profile_picture": user_profile.profile_picture,
             "role": role,
         }
     )
@@ -493,7 +498,7 @@ async def user_login(
                 "role": role,
                 "email": db_user.email,
                 "is_verified": db_user.is_verified,
-                "profile_picture": db_user.profile_picture,
+                "profile_picture": user_profile.profile_picture,
             },
         }
     )
@@ -507,7 +512,10 @@ async def user_login(
         max_age=7 * 24 * 60 * 60,  # 7 Days Expiry
     )
 
-    system_logger.info("User %s logged in successfully.", db_user.email)
+    system_logger.info(
+        "User logged in successfully.",
+        additional_info={"email": db_user.email},
+    )
     return response
 
 
@@ -541,7 +549,7 @@ async def forgot_password(
     user = db.query(User).filter(User.email == normalized_email).first()
 
     if not user:
-        system_logger.warning(
+        system_logger.error(
             "Password reset requested for non-existent email: %s", normalized_email
         )
         raise HTTPException(status_code=404, detail="User not found")
@@ -656,7 +664,7 @@ async def confirm_password_reset(
     )
 
     if not user:
-        system_logger.warning(
+        system_logger.error(
             f"""
             Password reset failed for email {
                 payload.email} due to invalid OTP or email.
