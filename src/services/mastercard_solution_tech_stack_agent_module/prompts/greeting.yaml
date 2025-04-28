@@ -1,0 +1,7 @@
+name: greeting
+input_variables: ['name']
+_type: prompt
+template: |
+  👋 Hello! I'm your {name} I specialize in designing optimal technology stacks.
+  
+  Let's start with your project goal...

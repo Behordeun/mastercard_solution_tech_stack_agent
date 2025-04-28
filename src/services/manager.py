@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from src.config.settings import env_config
 from functools import wraps
 from typing import Any, Callable, Dict, List
 
@@ -14,6 +15,7 @@ from src.services.mastercard_solution_tech_stack_agent_module.agent import agent
 
 logger = logging.getLogger(__name__)
 
+db_uri = f"postgresql://{env_config.user}:{env_config.password}@{env_config.host}/{env_config.database}"
 
 class ChatProcessingError(Exception):
     pass
@@ -118,26 +120,6 @@ class ChatProcessor:
             )
             system_logger.info(f"Conversation history: {messages}")
             print(f"Conversation history: {messages}")
-            
-            # messages.append({"role": "user", "content": message_dict.get("message")})
-            # state = {
-            #     "messages": messages,
-            #     "user_interaction_count": len(
-            #         [m for m in messages if m["role"] == "user"]
-            #     ),
-            #     "last_message": None,
-            #     "last_user_response": None,
-            #     "program_context": {},
-            #     "pillar_responses": {},
-            #     "asked_questions": [],
-            #     "current_pillar": None,
-            #     "completed_pillars": [],
-            #     "summary_confirmed": False,
-            #     "recommended_stack": None,
-            #     "tech_stack_ready": False,
-            # }
-
-            # graph = techstack_agent_graph()
             
             last_message = {"messages": [{"role": "user", "content": message_dict.get("message")}]}
 
