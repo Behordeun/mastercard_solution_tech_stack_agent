@@ -58,9 +58,11 @@ def stage_update(state: AgentState):
             conv_stage = ConversationStage.domain
         elif conv_stage == ConversationStage.domain:
             answered_questions["Domain"] = state["last_user_response"]
-            conv_stage = ConversationStage.specify_goal
+            state['done_pillar_step'] = False  
+            conv_stage = ConversationStage.pillar_questions
         elif conv_stage == ConversationStage.specify_goal:
-            answered_questions["Specify Goal"] = state["last_user_response"]    
+            answered_questions["Specify Goal"] = state["last_user_response"]
+            state['done_pillar_step'] = False  
             conv_stage = ConversationStage.pillar_questions
         elif conv_stage == ConversationStage.pillar_questions:
             if state['done_pillar_step'] == False:
@@ -152,7 +154,9 @@ async def main():
     test_sample = random.randint(1, 1000)
     prompts = ['',
                "The goal of this project is to build a family planning chatbot",
-               "The chatbot informs the user of various planning method and how to use contraceptives"]
+               "The chatbot informs the user of various planning method and how to use contraceptives", 
+               "Eductaion",
+               "The chatbot is going to be deployed on whatapp, telegram and on a website"]
     # test_sample = 758
 
     display_graph(create_graph())

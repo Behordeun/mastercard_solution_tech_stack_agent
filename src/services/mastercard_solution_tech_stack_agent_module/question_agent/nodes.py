@@ -1,12 +1,12 @@
 from .utils import AgentState, ConversationStage
-from .prompts import greeting_prompt, pillar_questions
+from .prompts import greeting_prompt, pillar_questions, pillar_marker_prompt_template, pillar_marker_parser
 from langgraph.graph.message import AnyMessage
 
 from src.services.model import agent_model as llm
 
 from typing import Dict
 from langchain_core.runnables import RunnableConfig
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, HumanMessage
 
 def question_marker(state: AgentState, config: RunnableConfig) -> Dict:
     """
@@ -26,31 +26,53 @@ def greeting_node(state: AgentState, config: RunnableConfig) -> Dict:
 
 def craft_question_node(state, prompt, config = None, parameters = {}):
     formated_prompt = prompt.invoke(parameters)
-    output =  llm.invoke(state['messages'] + [AIMessage(formated_prompt.text)])
+    output =  llm.invoke(state['messages'] + [HumanMessage(formated_prompt.text)])
     return {"messages": output}
 
 def pillar_questions_marker_node(state: AgentState, config: RunnableConfig) -> Dict:
-    pass
+    current_pillar = state.get('current_pillar', None)
+    if state.get('pillar_responses', None) == None:
+        state['pillar_responses'] = {}
+    
+    if state['pillar_responses'].get(current_pillar, None) == None:
+        state['pillar_responses'][current_pillar] = {}
 
-def pillar_questions_gen_node(state: AgentState, config: RunnableConfig) -> Dict:
-    pass
+    cur_pillar_questions = pillar_questions[current_pillar]
 
+    if current_pillar == None:
+        # If no current pillar, return a message indicating that
+        return {"messages": [AIMessage("No current pillar to mark.")]}
+
+    for question in cur_pillar_questions:
+        if question not in state['pillar_responses'][current_pillar].keys():
+            pillar_marker = pillar_marker_prompt_template.invoke({"question": question})
+            output = llm.invoke(state["messages"] + [HumanMessage(pillar_marker.text)])
+            parsed_output = pillar_marker_parser.invoke(output)
+            if parsed_output['answer_ready']:
+                print(parsed_output)
+                # If the answer is not ready, return the answer and the question
+                state['pillar_responses'][current_pillar][question] = parsed_output['answer']
+            else: 
+                state['messages'].append(AIMessage(parsed_output['question']))
+                return state
+            
 def pillar_questions_node(state: AgentState, config: RunnableConfig) -> Dict:
     """
     Handles the pillar questions stage of the conversation.
     """
-    if state['current_pillar'] is None:
-        state['current_pillar'] = list(pillar_questions.keys())[0]
-    
-    if state['current_pillar'] in pillar_questions:
-        question = pillar_questions[state['current_pillar']]
-        output = llm.invoke(state['messages'] + [AIMessage(question)])
-        return {"messages": output}
+    completed_pillars = state.get('completed_pillars', [])
+
+    for pillar, question in pillar_questions.items():
+        if pillar not in completed_pillars:
+            state['current_pillar'] = pillar
+            return state
     
     # If all pillars are completed, move to summary
-    state['completed_pillars'].append(state['current_pillar'])
+    completed_pillars.append(state['current_pillar'])
+    state['completed_pillars'] = completed_pillars
     state['current_pillar'] = None
-    return {"messages": [AIMessage("All pillars have been completed. Moving to summary.")]}
+    state['messages'].append(AIMessage("All pillars have been completed. Moving to summary."))
+    return state
 
 def summary_node(state: AgentState, config: RunnableConfig) -> Dict:
     # Placeholder for the conversation stage node

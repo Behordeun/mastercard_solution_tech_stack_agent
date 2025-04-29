@@ -1,0 +1,10 @@
+name: domain
+_type: prompt
+input_variables: ['question']
+template: |
+  "Based on the previous conversation, Check if the user has provided the answer to this question or we can infer the answer to this question: {question}"
+  "If the answer is ready provide the answer, but if the question is irrelevant answer_ready should be true and the answer should be irrelevant. otherwise ask the user to provide the answer to this question. "
+  "If you are generating a question. The generated question should be relevant to the previous conversation and should be a follow-up question. "
+  "The question should be clear and concise, and should encourage the user to provide a detailed response. "
+  "The output should be in this format: "
+  "{{ answer_ready: true/false, answer: <answer>, question: <question> }}"

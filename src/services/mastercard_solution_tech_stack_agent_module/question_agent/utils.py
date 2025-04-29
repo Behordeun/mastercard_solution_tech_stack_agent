@@ -32,7 +32,7 @@ class AgentState(TypedDict):
     pillar_responses: Dict[str, Dict[str, str]]             # Responses to pillar questions
     answered_questions: Dict[str, str]                      # List of answered by the user, with question and answer pairs
     current_pillar: Optional[str]                           # Current pillar being discussed
-    completed_pillars: List[str]                            # List of completed pillars
+    completed_pillars: List[str] = []                       # List of completed pillars
     done_pillar_step: bool = False                          # Whether the current pillar step is done
     summary_confirmed: bool                                 # Whether the summary has been confirmed by the user 
 
