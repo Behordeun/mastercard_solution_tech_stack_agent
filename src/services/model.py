@@ -5,7 +5,7 @@ from src.config.appconfig import env_config
 
 if env_config.llm == "GROQ":
     agent_model = ChatGroq(
-        model="llama-3.1-8b-instant",
+        model="gemma2-9b-it",
         temperature=0,
         max_tokens=None,
         timeout=None,

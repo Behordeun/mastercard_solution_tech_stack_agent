@@ -1,0 +1,2 @@
+DOMAIN_KNOWLEDGE_PATH = "src/services/mastercard_solution_tech_stack_agent_module/data/domain_knowledge.json"
+VECTORSTORE_PATH = "src/services/mastercard_solution_tech_stack_agent_module/kb_vectorstore"

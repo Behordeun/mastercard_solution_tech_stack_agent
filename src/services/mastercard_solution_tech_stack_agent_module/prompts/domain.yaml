@@ -1,6 +1,9 @@
 name: domain
 _type: prompt
+input_variables: ['domains']
 template: |
-  "What industry/domain does this serve?\n"
-  f"Common domains: Education, Healthcare, Finance, E-commerce, Agriculture, Logistics "
-  "Or specify your own:"
+  "Based on the previous conversation, craft a question asking the user to provide the domain of the project."
+  "The domain is a specific area or field of expertise that the project is focused on. "
+  "For example, if the project is a healthcare application, the domain would be healthcare. "
+  "Generate the question in a way that encourages the user to think about the specific area of expertise their project falls under. "
+  "The domain the user can submit to are the following: {domains}. "

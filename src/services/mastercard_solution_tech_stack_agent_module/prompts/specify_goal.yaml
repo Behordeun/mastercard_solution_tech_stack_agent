@@ -1,4 +1,4 @@
 name: specify_goal
 _type: prompt
 template: |
-  "What is the goal of your project?\n"
+  "Based on the previous conversation, craft a question asking the user to provide their domain. "
