@@ -30,30 +30,50 @@ import os
 # Using Chroma Vector DB Instead
 
 # knowledge base path
-kb_path = os.path.join("docs", "Tech Stack.csv")
 
-kb_data = pd.read_csv(kb_path)
+CURRENT_DIR = os.path.dirname(__file__)
+BASE_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
 
-# structure each record to be in a single string and have metadata attached.
-kb_result = [
-    Document(
-        page_content=", ".join([f"{col}: {d[col]}" for col in kb_data.columns]),
-        metadata=dict(
-            zip(
-                ["Entity Type", "Entity Category", "Entity Sub Category"],
-                [d["Entity Type"], d["Entity Category"], d["Entity Sub Category"]]
+
+def get_vectorstore():
+
+    vectordb_path = os.path.join(BASE_DIR, "services", "kb_vectorstore", "chroma")
+    # initalize embedding model
+
+    print(vectordb_path)
+    embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
+
+
+    if os.path.exists(kb_path):
+
+        vector_store = Chroma(
+            persist_directory=vectordb_path,
+            embedding_function=embeddings
+        )
+        return vector_store
+
+    kb_path = os.path.join("docs", "Tech Stack.csv")
+
+    kb_data = pd.read_csv(kb_path)
+
+    # structure each record to be in a single string and have metadata attached.
+    kb_result = [
+        Document(
+            page_content=", ".join([f"{col}: {d[col]}" for col in kb_data.columns]),
+            metadata=dict(
+                zip(
+                    ["Entity Type", "Entity Category", "Entity Sub Category"],
+                    [d["Entity Type"], d["Entity Category"], d["Entity Sub Category"]]
+                )
             )
         )
-    )
-    for _, d in kb_data.iterrows()
-]
+        for _, d in kb_data.iterrows()
+    ]
 
-# initalize embedding model
-
-embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
-
-vector_store = Chroma.from_documents(
-    documents=kb_result,
-    embedding=embeddings
-
-)
+    
+    vector_store = Chroma.from_documents(
+        documents=kb_result,
+        embedding=embeddings,
+        persist_directory=vectordb_path)
+    
+    return vector_store    
