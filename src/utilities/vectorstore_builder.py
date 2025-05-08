@@ -51,7 +51,7 @@ def get_vectorstore():
         )
         return vector_store
 
-    kb_path = os.path.join("docs", "Tech Stack.csv")
+    kb_path = os.path.join("docs", "Tech Stack.txt")
 
     kb_data = pd.read_csv(kb_path)
 
