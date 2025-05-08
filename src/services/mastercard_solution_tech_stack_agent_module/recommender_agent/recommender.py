@@ -50,4 +50,10 @@ def recommend_teck_stack(user_query):
 
     result = graph.invoke({"requirements":user_query})
 
-    return result
+    print(result)
+    # return result
+
+
+if __name__ == "__main__":
+    user_query = input("Enter your project description")
+    recommend_teck_stack(user_query)

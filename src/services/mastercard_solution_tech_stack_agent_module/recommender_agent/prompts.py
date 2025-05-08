@@ -6,11 +6,11 @@ You are a Tech Stack Agent responsible for recommending an appropriate technolog
   From these retrieved context: {context}, rerank these tools for each category and then recommend the best fit.
 
   Recommend a tech stack in these categories:
-  - Languages
   - Frontend
   - Backend
   - Database
   - Framework
+  - Security
   - Infrastructure
 
   Provide the **best recommended tech stack + trade-offs** for each.
@@ -20,7 +20,7 @@ You are a Tech Stack Agent responsible for recommending an appropriate technolog
   Ensure the recommended tech stack tools are compatible with one another.
 
   Do not include any tool IDs in your response. Only use the tool names.
-
+  
 """
 
 REQUIREMENTS_PROMPT = """

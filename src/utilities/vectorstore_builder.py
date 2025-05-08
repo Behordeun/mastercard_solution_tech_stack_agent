@@ -40,7 +40,6 @@ def get_vectorstore():
     vectordb_path = os.path.join(BASE_DIR, "services", "kb_vectorstore", "chroma")
     # initalize embedding model
 
-    print(vectordb_path)
     embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
 
 
