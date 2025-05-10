@@ -20,7 +20,6 @@ from .prompts import (
 from .nodes import (
     greeting_node,
     pillar_questions_marker_node,
-    pillar_questions_gen_node,
     pillar_questions_node,
     summary_node, 
     craft_question_node,
@@ -112,7 +111,6 @@ def create_graph(checkpointer: AsyncPostgresSaver = None, memory: MemorySaver = 
                    lambda state, config: craft_question_node(state = state, prompt = domain_prompt, parameters={"domains": domain_knowledge_manager.knowledge}))
     graph.add_node(ConversationStage.pillar_questions.value, pillar_questions_node)
     graph.add_node("pillar_question_marker", pillar_questions_marker_node)
-    graph.add_node("pillar_question_generator", pillar_questions_gen_node)
     graph.add_node(ConversationStage.summary.value, summary_node)
     
     
@@ -122,8 +120,7 @@ def create_graph(checkpointer: AsyncPostgresSaver = None, memory: MemorySaver = 
     graph.add_edge(ConversationStage.project_description.value, END)
     graph.add_edge(ConversationStage.domain.value, END)
     graph.add_edge(ConversationStage.pillar_questions.value, "pillar_question_marker")
-    graph.add_edge("pillar_question_marker", "pillar_question_generator")
-    graph.add_edge("pillar_question_generator", END)
+    graph.add_edge("pillar_question_marker", END)
 
     # Add Conditional edges based on the conversation stage
     graph.add_conditional_edges(
@@ -185,12 +182,14 @@ async def main():
         }
 
         print(config)
-
-        for user_input in prompts:
+        
+        while True:
+        # for user_input in prompts:
             # Get user input
             print("=" * 100)
             print("You: ", end="")
-            print(user_input)
+            user_input = input("You: ")
+            # print(user_input)
             if user_input.lower() == "exit":
                 break
             print("-" * 100)
