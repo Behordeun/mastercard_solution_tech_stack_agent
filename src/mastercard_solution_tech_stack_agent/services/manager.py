@@ -1,7 +1,8 @@
 import asyncio
 import logging
+import uuid
 from functools import wraps
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict
 
 from langchain_core.messages import AIMessage
 
@@ -26,7 +27,6 @@ from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_
 )
 
 logger = logging.getLogger(__name__)
-
 db_uri = f"postgresql://{env_config.user}:{env_config.password}@{env_config.host}/{env_config.database}"
 
 
@@ -64,9 +64,8 @@ async def safe_db_operation(operation: Callable, *args: Any, **kwargs: Any) -> A
     try:
         if asyncio.iscoroutinefunction(operation):
             return await operation(*args, **kwargs)
-        else:
-            loop = asyncio.get_event_loop()
-            return await loop.run_in_executor(None, operation, *args, **kwargs)
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, operation, *args, **kwargs)
     except Exception as e:
         system_logger.error(e, exc_info=True)
         raise DatabaseOperationError(str(e)) from e
@@ -87,14 +86,16 @@ class ChatProcessor:
             if loggable and system_message:
                 message_dict["message"] = system_message
 
-            with DatabaseSession() as session:
-                room_id = message_dict.get("roomId") or message_dict.get("room_id")
-                if not room_id:
-                    raise ValueError("room_id is required and missing in message_dict")
+            user_id = message_dict.get("user_id") or str(uuid.uuid4())
+            room_id = message_dict.get("roomId") or message_dict.get("room_id")
+            if not room_id:
+                raise ValueError("Missing 'room_id' in message")
 
+            with DatabaseSession() as session:
                 session.add(
                     ChatLog(
                         room_id=room_id,
+                        user_id=user_id,
                         user_message=message_dict.get("message"),
                         ai_response=ai_message,
                         system_note=system_message.replace("SYSTEM: ", ""),
@@ -105,7 +106,7 @@ class ChatProcessor:
 
             return Chat_Response(
                 id=str(message_dict.get("id")),
-                roomId=message_dict.get("roomId"),
+                roomId=room_id,
                 resourceUrls=message_dict.get("resourceUrls"),
                 sender="AI",
                 message=ai_message,
@@ -132,13 +133,11 @@ class ChatProcessor:
                 get_conversation_history, self.db, message_dict.get("roomId")
             )
             system_logger.info(f"Conversation history: {messages}")
-            print(f"Conversation history: {messages}")
 
             last_message = {
                 "messages": [{"role": "user", "content": message_dict.get("message")}]
             }
 
-            print("Last Message:", last_message)
             config = {
                 "configurable": {
                     "conversation_id": message_dict.get("roomId"),
@@ -146,34 +145,30 @@ class ChatProcessor:
                 }
             }
 
-            # ✅ Fix: Use async invocation
             async for event in agent.astream(last_message, config):
                 for value in event.values():
                     output = value
-                    print(f"Assistant {value['messages'][-1]}")
+                    print(f"Assistant: {value['messages'][-1]}")
 
             if not isinstance(output, dict):
-                raise ValueError("Graph did not return a valid dictionary.")
+                raise ValueError("Graph output is not a dictionary.")
 
-            ai_messages: List[str] = [
+            ai_messages = [
                 msg.content
                 for msg in output.get("messages", [])
                 if isinstance(msg, AIMessage)
             ]
             if not ai_messages:
-                raise ValueError("No AI response generated.")
+                raise ValueError("No AI message returned.")
 
-            ai_message = ai_messages[-1].strip()
-            return await self.log_and_respond(message_dict, ai_message)
+            return await self.log_and_respond(message_dict, ai_messages[-1].strip())
 
         except asyncio.TimeoutError as e:
             system_logger.error(e, exc_info=True)
             return await self.log_and_respond(
                 message_dict, "Request timed out. Please try again.", "", False
             )
-
         except Exception as e:
-            print(e)
             system_logger.error(e, exc_info=True)
             return await self.log_and_respond(
                 message_dict,
@@ -193,15 +188,14 @@ async def chat_event(db: Any, message: Chat_Message) -> Dict[str, Any]:
         chat_processor = ChatProcessor(db)
         response = await chat_processor.handle_graph_integration(message.model_dump())
 
-        print(f"TSA145 Response: {response['message']}")
-
         insert_conversation(
             db,
             ai_message=response["message"],
             room_id=message.roomId,
             user_message=message.message,
+            user_id=str(uuid.uuid4()),
         )
-        # logger.info(f"TSA145 Response: {response['message']}")
+
         return response
 
     except Exception as e:
@@ -212,16 +206,17 @@ async def chat_event(db: Any, message: Chat_Message) -> Dict[str, Any]:
         }
 
 
-async def create_chat(db: Any, room_id) -> Dict[str, Any]:
+async def create_chat(db: Any, room_id: str) -> Dict[str, Any]:
     logger.info(f"Create Chat")
 
     try:
-        # print(prompt_template.get("OPENING_TEXT", ""))
+        user_id = str(uuid.uuid4())
         insert_conversation(
             db,
             ai_message=prompt_template.get("OPENING_TEXT", ""),
             room_id=room_id,
             user_message="",
+            user_id=user_id,
         )
 
         config = {

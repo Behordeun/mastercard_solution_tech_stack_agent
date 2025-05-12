@@ -20,10 +20,11 @@ class AIMessageResponse(BaseModel):
 class ConversationHistory(Base):
     __tablename__ = "conversation_history"
 
-    id = Column(Integer, primary_key=True)
-    room_id = Column(String, index=True)
-    ai_message = Column(Text)
-    user_message = Column(Text)
+    id = Column(Integer, primary_key=True, index=True)
+    room_id = Column(String, nullable=False)
+    user_id = Column(String, nullable=False)
+    user_message = Column(String)
+    ai_message = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 

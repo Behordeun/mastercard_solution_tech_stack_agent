@@ -32,9 +32,12 @@ def greeting_node(state: AgentState, config: RunnableConfig) -> Dict:
 
 
 def craft_question_node(state, prompt, config=None, parameters={}):
-    formated_prompt = prompt.invoke(parameters)
-    output = llm.invoke(state["messages"] + [HumanMessage(formated_prompt.text)])
-    return {"messages": output}
+    parameters = {**parameters, **state.get("answered_questions", {})}
+    formatted_prompt = prompt.invoke(parameters)  # ChatPromptValue
+    prompt_messages = formatted_prompt.to_messages()
+
+    output = llm.invoke(state["messages"] + prompt_messages)
+    return {"messages": state["messages"] + prompt_messages + [output]}
 
 
 def pillar_questions_marker_node(state: AgentState, config: RunnableConfig) -> Dict:

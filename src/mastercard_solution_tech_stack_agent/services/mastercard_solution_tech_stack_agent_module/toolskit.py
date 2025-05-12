@@ -21,10 +21,8 @@ logger = logging.getLogger(__name__)
 settings = Settings()
 db = SessionLocal()
 
-DOMAIN_KNOWLEDGE_PATH = "src/services/mastercard_solution_tech_stack_agent_module/data/domain_knowledge.json"
-VECTORSTORE_PATH = (
-    "src/services/mastercard_solution_tech_stack_agent_module/kb_vectorstore"
-)
+DOMAIN_KNOWLEDGE_PATH = "src/mastercard_solution_tech_stack_agent/services/mastercard_solution_tech_stack_agent_module/data/domain_knowledge.json"
+VECTORSTORE_PATH = "src/mastercard_solution_tech_stack_agent/services/mastercard_solution_tech_stack_agent_module/kb_vectorstore"
 
 # @tool
 # def null(data: Annotated[str, ""]) -> str:

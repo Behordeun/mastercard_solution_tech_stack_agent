@@ -1,6 +1,7 @@
 # import libraries
 import logging
 import os
+import warnings
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -20,6 +21,11 @@ from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import (
     system_logger,
 )
 from src.mastercard_solution_tech_stack_agent.utilities.Printer import printer
+
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=UserWarning)
+
 
 # === Log directory setup ===
 LOG_DIR = "src/logs"
@@ -103,8 +109,15 @@ if env_config.env != "development":
     app.add_middleware(HTTPSRedirectMiddleware)
 
 # === Mount static assets ===
-app.mount("/static", StaticFiles(directory="src/static"), name="static")
-templates = Jinja2Templates(directory="src/templates")
+# === Mount static assets ===
+app.mount(
+    "/static",
+    StaticFiles(directory="src/mastercard_solution_tech_stack_agent/static"),
+    name="static",
+)
+templates = Jinja2Templates(
+    directory="src/mastercard_solution_tech_stack_agent/templates"
+)
 
 
 # === Serve frontend ===
@@ -116,7 +129,7 @@ async def serve_ui(request: Request):
 # === Global Exception Logging ===
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Unhandled Exception: {exc}", exc_info=True)
+    logger.error("Unhandled Exception: %s", exc, exc_info=True)
     return JSONResponse(
         status_code=500,
         content={"detail": "An unexpected error occurred. Please try again later."},

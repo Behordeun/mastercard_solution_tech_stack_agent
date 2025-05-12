@@ -9,7 +9,7 @@ def load_yaml_file(file_path):
     """
     Reads a YAML file and returns its contents as a Python dictionary.
     """
-    with open(file_path, "r") as file:
+    with open(file_path, "r", encoding="utf-8") as file:
         data = yaml.safe_load(file)
     return data
 
@@ -84,3 +84,19 @@ def load_pillar_questions(csv_path: str) -> dict:
         if question:
             pillar_questions.setdefault(current_pillar, []).append(question.strip())
     return pillar_questions
+
+
+class GraphInvocationError(Exception):
+    """
+    Custom exception raised when LangGraph graph invocation fails.
+
+    Attributes:
+        message -- explanation of the error
+    """
+
+    def __init__(self, message="LangGraph graph invocation failed"):
+        self.message = message
+        super().__init__(self.message)
+
+    def __str__(self):
+        return f"GraphInvocationError: {self.message}"

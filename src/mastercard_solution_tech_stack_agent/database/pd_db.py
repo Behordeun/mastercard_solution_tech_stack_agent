@@ -1,13 +1,18 @@
 import logging
 from contextlib import contextmanager
+from datetime import datetime
 from typing import Generator, Optional
 
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from src.mastercard_solution_tech_stack_agent.config.db_setup import SessionLocal
 from src.mastercard_solution_tech_stack_agent.database.schemas import (
     AgentSession,
     ConversationHistory,
+)
+from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import (
+    system_logger,
 )
 
 logger = logging.getLogger(__name__)
@@ -34,20 +39,25 @@ def get_db() -> Generator[Session, None, None]:
 
 
 # ✅ Conversation Insertion
-def insert_conversation(
-    db: Session, room_id: str, ai_message: str, user_message: str = ""
-) -> None:
+def insert_conversation(db, room_id, ai_message, user_message, user_id):
+    """
+    Insert a conversation entry into the database with required fields.
+    """
     try:
-        conversation = ConversationHistory(
-            room_id=room_id, ai_message=ai_message, user_message=user_message
+        new_entry = ConversationHistory(
+            room_id=room_id,
+            user_id=user_id,
+            user_message=user_message,
+            ai_message=ai_message,
+            created_at=datetime.utcnow(),
         )
-        db.add(conversation)
+        db.add(new_entry)
         db.commit()
-
-        print("Conversation Added")
-    except Exception as e:
+        db.refresh(new_entry)
+        return new_entry
+    except SQLAlchemyError as e:
         db.rollback()
-        logger.error(f"Error inserting chat message: {str(e)}")
+        system_logger.error(f"Error inserting conversation: {e}", exc_info=True)
         raise
 
 
