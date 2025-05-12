@@ -7,13 +7,13 @@ from fastapi.responses import JSONResponse
 from langchain_core.messages import AIMessage
 from sqlalchemy.orm import Session
 
-from src.api.data_model import Chat_Message
-from src.api.logs_router import router as logs_router
-from src.config.db_setup import SessionLocal
-from src.database.schemas import AIMessageResponse
-from src.database.pd_db import get_conversation_history, insert_conversation
-from src.error_trace.errorlogger import system_logger  # ✅ Custom logger
-from src.services.manager import chat_event, create_chat
+from src.mastercard_solution_tech_stack_agent.api.data_model import Chat_Message
+from src.mastercard_solution_tech_stack_agent.api.logs_router import router as logs_router
+from src.mastercard_solution_tech_stack_agent.config.db_setup import SessionLocal
+from src.mastercard_solution_tech_stack_agent.database.schemas import AIMessageResponse
+from src.mastercard_solution_tech_stack_agent.database.pd_db import get_conversation_history, insert_conversation
+from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import system_logger  # ✅ Custom logger
+from src.mastercard_solution_tech_stack_agent.services.manager import chat_event, create_chat
 
 logger = logging.getLogger(__name__)
 

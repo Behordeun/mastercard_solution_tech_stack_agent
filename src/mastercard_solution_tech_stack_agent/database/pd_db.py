@@ -6,8 +6,8 @@ from typing import Generator, Optional
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from src.config.db_setup import engine, SessionLocal
-from src.database.schemas import AgentSession, ConversationHistory
+from src.mastercard_solution_tech_stack_agent.config.db_setup import engine, SessionLocal
+from src.mastercard_solution_tech_stack_agent.database.schemas import AgentSession, ConversationHistory
 
 logger = logging.getLogger(__name__)
 

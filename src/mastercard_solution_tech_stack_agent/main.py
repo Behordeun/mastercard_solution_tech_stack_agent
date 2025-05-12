@@ -12,12 +12,12 @@ from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 
-from src.api.route import chat_router
-from src.config import settings
-from src.config.appconfig import env_config
-from src.config.settings import Settings
-from src.error_trace.errorlogger import system_logger
-from src.utilities.Printer import printer
+from src.mastercard_solution_tech_stack_agent.api.route import chat_router
+from src.mastercard_solution_tech_stack_agent.config import settings
+from src.mastercard_solution_tech_stack_agent.config.appconfig import env_config
+from src.mastercard_solution_tech_stack_agent.config.settings import Settings
+from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import system_logger
+from src.mastercard_solution_tech_stack_agent.utilities.Printer import printer
 
 # === Log directory setup ===
 LOG_DIR = "src/logs"

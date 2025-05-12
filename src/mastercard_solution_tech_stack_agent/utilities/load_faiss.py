@@ -1,4 +1,4 @@
-from src.utilities.vectorstore_builder import build_faiss_vectorstore
+from src.mastercard_solution_tech_stack_agent.utilities.vectorstore_builder import build_faiss_vectorstore
 
 # You can add new text files here to include them in the vectorstore.
 # This will allow the model to reference the new information.

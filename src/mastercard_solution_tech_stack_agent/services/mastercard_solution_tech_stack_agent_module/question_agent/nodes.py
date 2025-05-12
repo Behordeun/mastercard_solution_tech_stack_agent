@@ -2,7 +2,7 @@ from .utils import AgentState, ConversationStage
 from .prompts import greeting_prompt, pillar_questions, pillar_marker_prompt_template, pillar_marker_parser
 from langgraph.graph.message import AnyMessage
 
-from src.services.model import agent_model as llm
+from src.mastercard_solution_tech_stack_agent.services.model import agent_model as llm
 
 from typing import Dict
 from langchain_core.runnables import RunnableConfig

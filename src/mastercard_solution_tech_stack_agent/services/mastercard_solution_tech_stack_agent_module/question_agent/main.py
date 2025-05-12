@@ -1,9 +1,9 @@
 from psycopg_pool import AsyncConnectionPool
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
-from src.services.model import agent_model as llm
-from src.services.manager import db_uri
-from src.services.mastercard_solution_tech_stack_agent_module.utils import display_graph
+from src.mastercard_solution_tech_stack_agent.services.model import agent_model as llm
+from src.mastercard_solution_tech_stack_agent.services.manager import db_uri
+from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_stack_agent_module.utils import display_graph
 
 from .utils import (
     AgentState,
@@ -33,9 +33,9 @@ from langgraph.checkpoint.memory import MemorySaver
 
 
 def stage_update(state: AgentState):
-    '''
+    """
     Updates the state of the conversation based on the current stage.
-    '''
+    """
     # Logic to update the state based on the current stage    
     state["user_interaction_count"] = state.get("user_interaction_count", 0) + 1
     state["last_message"] = state["messages"][-1].content if state["messages"] else None

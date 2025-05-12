@@ -1,5 +1,5 @@
 from langchain_core.messages import AIMessage
-from src.services.model import agent_model as llm
+from src.mastercard_solution_tech_stack_agent.services.model import agent_model as llm
 
 def display_graph(graph, file_path = 'output_image.png'):
     output = graph.get_graph().draw_mermaid_png()
