@@ -1,13 +1,14 @@
 import logging
-import os
 from contextlib import contextmanager
 from typing import Generator, Optional
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session
 
-from src.mastercard_solution_tech_stack_agent.config.db_setup import engine, SessionLocal
-from src.mastercard_solution_tech_stack_agent.database.schemas import AgentSession, ConversationHistory
+from src.mastercard_solution_tech_stack_agent.config.db_setup import SessionLocal
+from src.mastercard_solution_tech_stack_agent.database.schemas import (
+    AgentSession,
+    ConversationHistory,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -74,16 +75,20 @@ def get_conversation_history(db: Session, room_id: str, k: int = 48) -> str:
         for msg in unique_messages:
             if msg.user_message:
                 user_text = msg.user_message
-                conversation_parts.append({
-                    "role": "user",
-                    "content": user_text,
-                })
+                conversation_parts.append(
+                    {
+                        "role": "user",
+                        "content": user_text,
+                    }
+                )
             if msg.ai_message:
                 ai_text = msg.ai_message
-                conversation_parts.append({
-                    "role": "ai",
-                    "content": ai_text,
-                })
+                conversation_parts.append(
+                    {
+                        "role": "ai",
+                        "content": ai_text,
+                    }
+                )
 
         return conversation_parts
 

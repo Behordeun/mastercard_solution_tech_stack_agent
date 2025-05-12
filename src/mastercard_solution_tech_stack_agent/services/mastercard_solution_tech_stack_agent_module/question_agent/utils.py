@@ -1,17 +1,19 @@
-from typing import Annotated, Dict, List, Optional
-from langgraph.graph.message import AnyMessage, add_messages
-from typing_extensions import TypedDict
-from datetime import datetime
-from pathlib import Path
-from enum import Enum
 import json
 import logging
+from datetime import datetime
+from enum import Enum
+from pathlib import Path
+from typing import Annotated, Dict, List, Optional
+
+from langgraph.graph.message import AnyMessage, add_messages
+from typing_extensions import TypedDict
 
 DOMAIN_KNOWLEDGE_PATH = "src/services/mastercard_solution_tech_stack_agent_module/data/domain_knowledge.json"
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 class ConversationStage(Enum):
     greeting = "greeting"
@@ -22,19 +24,24 @@ class ConversationStage(Enum):
     summary = "summary"
     end_of_conversation = "end_of_conversation"
 
+
 # === STATE ===
 class AgentState(TypedDict):
-    messages: Annotated[List[AnyMessage], add_messages]     # List of messages in the conversation 
-    conversation_stage: ConversationStage                   # Current stage of the conversation
-    user_interaction_count: int                             # Number of interactions with the user
-    last_message: Optional[str]                             # Last message sent to the user
-    last_user_response: Optional[str]                       # Last response from the user
-    pillar_responses: Dict[str, Dict[str, str]]             # Responses to pillar questions
-    answered_questions: Dict[str, str]                      # List of answered by the user, with question and answer pairs
-    current_pillar: Optional[str]                           # Current pillar being discussed
-    completed_pillars: List[str] = []                       # List of completed pillars
-    done_pillar_step: bool = False                          # Whether the current pillar step is done
-    summary_confirmed: bool                                 # Whether the summary has been confirmed by the user 
+    messages: Annotated[
+        List[AnyMessage], add_messages
+    ]  # List of messages in the conversation
+    conversation_stage: ConversationStage  # Current stage of the conversation
+    user_interaction_count: int  # Number of interactions with the user
+    last_message: Optional[str]  # Last message sent to the user
+    last_user_response: Optional[str]  # Last response from the user
+    pillar_responses: Dict[str, Dict[str, str]]  # Responses to pillar questions
+    answered_questions: Dict[
+        str, str
+    ]  # List of answered by the user, with question and answer pairs
+    current_pillar: Optional[str]  # Current pillar being discussed
+    completed_pillars: List[str] = []  # List of completed pillars
+    done_pillar_step: bool = False  # Whether the current pillar step is done
+    summary_confirmed: bool  # Whether the summary has been confirmed by the user
 
 
 # === DOMAIN KNOWLEDGE MANAGEMENT ===

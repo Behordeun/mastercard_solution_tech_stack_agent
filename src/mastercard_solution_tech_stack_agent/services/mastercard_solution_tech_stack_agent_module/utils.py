@@ -1,11 +1,8 @@
-from langchain_core.messages import AIMessage
-from src.mastercard_solution_tech_stack_agent.services.model import agent_model as llm
-
-def display_graph(graph, file_path = 'output_image.png'):
+def display_graph(graph, file_path="output_image.png"):
     output = graph.get_graph().draw_mermaid_png()
 
     # Write the PNG data to the file
-    with open(file_path, 'wb') as f:
+    with open(file_path, "wb") as f:
         f.write(output)
 
     print(f"Image saved as {file_path}")

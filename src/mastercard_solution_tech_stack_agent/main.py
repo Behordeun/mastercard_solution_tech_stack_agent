@@ -16,7 +16,9 @@ from src.mastercard_solution_tech_stack_agent.api.route import chat_router
 from src.mastercard_solution_tech_stack_agent.config import settings
 from src.mastercard_solution_tech_stack_agent.config.appconfig import env_config
 from src.mastercard_solution_tech_stack_agent.config.settings import Settings
-from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import system_logger
+from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import (
+    system_logger,
+)
 from src.mastercard_solution_tech_stack_agent.utilities.Printer import printer
 
 # === Log directory setup ===

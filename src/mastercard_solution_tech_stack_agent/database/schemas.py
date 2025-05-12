@@ -6,8 +6,6 @@ from sqlalchemy import Column, DateTime, Integer, String, Text, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.types import JSON
 
-from src.mastercard_solution_tech_stack_agent.config.db_setup import engine
-
 Base = declarative_base()
 
 
