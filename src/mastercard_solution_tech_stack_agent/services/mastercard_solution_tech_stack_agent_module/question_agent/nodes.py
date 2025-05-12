@@ -4,15 +4,16 @@ from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph.message import AnyMessage
 
-from src.mastercard_solution_tech_stack_agent.services.model import agent_model as llm
-
-from .prompts import (
+from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_stack_agent_module.question_agent.prompts import (
     greeting_prompt,
     pillar_marker_parser,
     pillar_marker_prompt_template,
     pillar_questions,
 )
-from .utils import AgentState
+from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_stack_agent_module.question_agent.utils import (
+    AgentState,
+)
+from src.mastercard_solution_tech_stack_agent.services.model import agent_model as llm
 
 
 def question_marker(state: AgentState, config: RunnableConfig) -> Dict:
@@ -27,17 +28,18 @@ def question_marker(state: AgentState, config: RunnableConfig) -> Dict:
 
 def greeting_node(state: AgentState, config: RunnableConfig) -> Dict:
     opening_message = greeting_prompt.invoke({"name": "AI Solution Architect."})
-    output = {"messages": [AIMessage(opening_message.text)]}
-    return output
+    return {"messages": [AIMessage(opening_message.to_string())]}
 
 
 def craft_question_node(state, prompt, config=None, parameters=None):
     if parameters is None:
         parameters = {}
 
-    # Merge state variables without overwriting explicitly passed `parameters`
-    full_params = {**state.get("answered_questions", {}), **parameters}
-
+    # Merge answered questions with override parameters
+    full_params = {
+        **state.get("answered_questions", {}),
+        **parameters
+    }
     formatted_prompt = prompt.invoke(full_params)
     prompt_messages = formatted_prompt.to_messages()
 
@@ -47,45 +49,40 @@ def craft_question_node(state, prompt, config=None, parameters=None):
 
 def pillar_questions_marker_node(state: AgentState, config: RunnableConfig) -> Dict:
     current_pillar = state.get("current_pillar", None)
-    if state.get("pillar_responses", None) == None:
+    if state.get("pillar_responses", None) is None:
         state["pillar_responses"] = {}
 
-    if state["pillar_responses"].get(current_pillar, None) == None:
-        state["pillar_responses"][current_pillar] = {}
-
-    cur_pillar_questions = pillar_questions[current_pillar]
-
-    if current_pillar == None:
-        # If no current pillar, return a message indicating that
+    if current_pillar is None:
         return {"messages": [AIMessage("No current pillar to mark.")]}
 
+    if state["pillar_responses"].get(current_pillar, None) is None:
+        state["pillar_responses"][current_pillar] = {}
+
+    cur_pillar_questions = pillar_questions.get(current_pillar, [])
+
     for question in cur_pillar_questions:
-        if question not in state["pillar_responses"][current_pillar].keys():
+        if question not in state["pillar_responses"][current_pillar]:
             pillar_marker = pillar_marker_prompt_template.invoke({"question": question})
-            output = llm.invoke(state["messages"] + [HumanMessage(pillar_marker.text)])
+            output = llm.invoke(
+                state["messages"] + [HumanMessage(pillar_marker.to_string())]
+            )
             parsed_output = pillar_marker_parser.invoke(output)
-            if parsed_output["answer_ready"]:
-                print(parsed_output)
-                # If the answer is not ready, return the answer and the question
+            if parsed_output.get("answer_ready"):
                 state["pillar_responses"][current_pillar][question] = parsed_output[
                     "answer"
                 ]
             else:
                 state["messages"].append(AIMessage(parsed_output["question"]))
                 return state
+    return state
 
 
 def pillar_questions_node(state: AgentState, config: RunnableConfig) -> Dict:
-    """
-    Handles the pillar questions stage of the conversation.
-    """
     completed_pillars = state.get("completed_pillars", [])
-
-    for pillar, question in pillar_questions.items():
+    for pillar, questions in pillar_questions.items():
         if pillar not in completed_pillars:
             state["current_pillar"] = pillar
             return state
-
     # If all pillars are completed, move to summary
     completed_pillars.append(state["current_pillar"])
     state["completed_pillars"] = completed_pillars

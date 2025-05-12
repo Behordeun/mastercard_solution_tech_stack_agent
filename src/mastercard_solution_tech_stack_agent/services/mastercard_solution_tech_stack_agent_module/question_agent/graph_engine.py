@@ -11,10 +11,13 @@ from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_
     summary_node,
 )
 from src.mastercard_solution_tech_stack_agent.utilities.prompt_loader import (
-    load_prompt_template_from_yaml,
+    load_prompt_template_from_yaml
 )
-
-from .utils import AgentState, ConversationStage, domain_knowledge_manager
+from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_stack_agent_module.question_agent.utils import (
+    AgentState,
+    ConversationStage,
+    domain_knowledge_manager,
+)
 
 # === Prompt File Paths ===
 PROMPT_DIR = "src/mastercard_solution_tech_stack_agent/services/mastercard_solution_tech_stack_agent_module/prompts"
@@ -23,7 +26,6 @@ domain_prompt = load_prompt_template_from_yaml(os.path.join(PROMPT_DIR, "domain.
 prompt_description_prompt = load_prompt_template_from_yaml(
     os.path.join(PROMPT_DIR, "project_description.yaml")
 )
-# Uncomment if needed in future
 # specify_goal_prompt = load_prompt_template_from_yaml(os.path.join(PROMPT_DIR, "specify_goal.yaml"))
 
 
@@ -50,7 +52,6 @@ def stage_update(state: AgentState):
         conv_stage = ConversationStage.pillar_questions
     elif conv_stage == ConversationStage.pillar_questions:
         if state.get("done_pillar_step"):
-            answered_questions["Domain"] = state["last_user_response"]
             conv_stage = ConversationStage.summary
     elif conv_stage == ConversationStage.summary:
         if state.get("summary_confirmed", False):
@@ -71,29 +72,32 @@ def route_step(state: AgentState):
     )
 
 
+# === Domain Prompt Node (lazy loading at runtime) ===
+def domain_node(state, config):
+    return craft_question_node(
+        state,
+        domain_prompt,
+        parameters={"domains": domain_knowledge_manager.knowledge}
+    )
+
+
 # === Graph Creation ===
 def create_graph(memory: MemorySaver = None):
     graph = StateGraph(AgentState)
 
+    # Add all nodes
     graph.add_node("stage_update", stage_update)
     graph.add_node(ConversationStage.greeting.value, greeting_node)
-
     graph.add_node(
         ConversationStage.project_description.value,
-        lambda state, config: craft_question_node(state, prompt_description_prompt),
+        lambda s, c: craft_question_node(s, prompt_description_prompt),
     )
-
-    graph.add_node(
-        ConversationStage.domain.value,
-        lambda state, config: craft_question_node(
-            state, domain_prompt, {"domains": domain_knowledge_manager.knowledge}
-        ),
-    )
-
+    graph.add_node(ConversationStage.domain.value, domain_node)
     graph.add_node(ConversationStage.pillar_questions.value, pillar_questions_node)
     graph.add_node("pillar_question_marker", pillar_questions_marker_node)
     graph.add_node(ConversationStage.summary.value, summary_node)
 
+    # Edges
     graph.add_edge(START, "stage_update")
     graph.add_edge(ConversationStage.pillar_questions.value, "pillar_question_marker")
     graph.add_edge("pillar_question_marker", END)

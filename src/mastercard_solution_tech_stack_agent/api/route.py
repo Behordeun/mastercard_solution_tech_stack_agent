@@ -33,11 +33,10 @@ logger = logging.getLogger(__name__)
 chat_router = APIRouter()
 chat_router.include_router(logs_router)
 
-# Initialize LangGraph AI graph
+# === Initialize LangGraph ===
 memory = MemorySaver()
 graph = create_graph(memory=memory)
 
-# Config per session
 GRAPH_CONFIG = {
     "configurable": {
         "conversation_id": "live-chat-session",
@@ -46,7 +45,7 @@ GRAPH_CONFIG = {
 }
 
 
-# Dependency to access DB session
+# === DB Dependency ===
 def get_db():
     db = SessionLocal()
     try:
@@ -55,7 +54,7 @@ def get_db():
         db.close()
 
 
-# Extract AI message from varied formats
+# === Extract AIMessage from various structures ===
 def _extract_ai_message(response: Union[AIMessage, dict]) -> AIMessage:
     if isinstance(response, AIMessage):
         return response
@@ -68,13 +67,14 @@ def _extract_ai_message(response: Union[AIMessage, dict]) -> AIMessage:
                     return msg
         elif "content" in response:
             return AIMessage(content=str(response["content"]))
-    return AIMessage(content="AI could not generate a response.")
+    return AIMessage(content="AI could not generate a valid response.")
 
 
+# === POST /chat-ai ===
 @chat_router.post("/chat-ai", response_model=AIMessageResponse)
 async def chat(message: Chat_Message, db: Annotated[Session, Depends(get_db)]):
     """
-    Route to interact with LangGraph-powered AI using user message.
+    Handle AI interaction via LangGraph based on user input.
     """
     try:
         cleaned_message = re.sub(
@@ -83,7 +83,8 @@ async def chat(message: Chat_Message, db: Annotated[Session, Depends(get_db)]):
         user_message = HumanMessage(cleaned_message)
 
         response = await graph.ainvoke(
-            {"messages": [user_message]}, config=GRAPH_CONFIG
+            {"messages": [user_message]},
+            config=GRAPH_CONFIG
         )
         ai_message = _extract_ai_message(response)
 
@@ -94,26 +95,35 @@ async def chat(message: Chat_Message, db: Annotated[Session, Depends(get_db)]):
             response_metadata=getattr(ai_message, "response_metadata", {}),
             additional_kwargs=getattr(ai_message, "additional_kwargs", {}),
         )
+
     except GraphInvocationError as e:
-        logger.error(f"AI graph invocation failed: {e}", exc_info=True)
+        logger.error("AI graph invocation failed: %s", e, exc_info=True)
         system_logger.error(e, exc_info=True)
         return JSONResponse(
             content={"content": "AI service error occurred. Please try again later."},
             status_code=502,
         )
+    except Exception as e:
+        logger.exception("Unexpected error in /chat-ai route.")
+        system_logger.error(e, exc_info=True)
+        return JSONResponse(
+            content={"content": "Unexpected server error occurred."},
+            status_code=500,
+        )
 
 
+# === GET /chat-history ===
 @chat_router.get("/chat-history", response_model_exclude_unset=True)
 async def get_chat_history(room_id: str, db: Annotated[Session, Depends(get_db)]):
     """
-    Fetch chat history by room ID.
+    Fetch previous chat history for a given room ID.
     """
     try:
         history = get_conversation_history(db, room_id=room_id)
         if not history:
             await create_chat(db=db, room_id=room_id)
     except SQLAlchemyError as e:
-        logger.error(f"Database error retrieving chat history: {e}", exc_info=True)
+        logger.error("Database error retrieving chat history: %s", e, exc_info=True)
         system_logger.error(e, exc_info=True)
         raise HTTPException(
             status_code=500,
