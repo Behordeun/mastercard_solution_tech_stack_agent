@@ -36,10 +36,7 @@ def craft_question_node(state, prompt, config=None, parameters=None):
         parameters = {}
 
     # Merge answered questions with override parameters
-    full_params = {
-        **state.get("answered_questions", {}),
-        **parameters
-    }
+    full_params = {**state.get("answered_questions", {}), **parameters}
     formatted_prompt = prompt.invoke(full_params)
     prompt_messages = formatted_prompt.to_messages()
 

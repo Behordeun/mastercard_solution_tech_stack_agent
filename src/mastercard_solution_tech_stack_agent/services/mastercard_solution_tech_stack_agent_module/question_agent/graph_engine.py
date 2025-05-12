@@ -10,13 +10,13 @@ from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_
     pillar_questions_node,
     summary_node,
 )
-from src.mastercard_solution_tech_stack_agent.utilities.prompt_loader import (
-    load_prompt_template_from_yaml
-)
 from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_stack_agent_module.question_agent.utils import (
     AgentState,
     ConversationStage,
     domain_knowledge_manager,
+)
+from src.mastercard_solution_tech_stack_agent.utilities.prompt_loader import (
+    load_prompt_template_from_yaml,
 )
 
 # === Prompt File Paths ===
@@ -75,9 +75,7 @@ def route_step(state: AgentState):
 # === Domain Prompt Node (lazy loading at runtime) ===
 def domain_node(state, config):
     return craft_question_node(
-        state,
-        domain_prompt,
-        parameters={"domains": domain_knowledge_manager.knowledge}
+        state, domain_prompt, parameters={"domains": domain_knowledge_manager.knowledge}
     )
 
 

@@ -83,8 +83,7 @@ async def chat(message: Chat_Message, db: Annotated[Session, Depends(get_db)]):
         user_message = HumanMessage(cleaned_message)
 
         response = await graph.ainvoke(
-            {"messages": [user_message]},
-            config=GRAPH_CONFIG
+            {"messages": [user_message]}, config=GRAPH_CONFIG
         )
         ai_message = _extract_ai_message(response)
 
