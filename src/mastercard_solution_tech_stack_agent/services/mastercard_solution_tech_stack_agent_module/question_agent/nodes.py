@@ -31,9 +31,14 @@ def greeting_node(state: AgentState, config: RunnableConfig) -> Dict:
     return output
 
 
-def craft_question_node(state, prompt, config=None, parameters={}):
-    parameters = {**parameters, **state.get("answered_questions", {})}
-    formatted_prompt = prompt.invoke(parameters)  # ChatPromptValue
+def craft_question_node(state, prompt, config=None, parameters=None):
+    if parameters is None:
+        parameters = {}
+
+    # Merge state variables without overwriting explicitly passed `parameters`
+    full_params = {**state.get("answered_questions", {}), **parameters}
+
+    formatted_prompt = prompt.invoke(full_params)
     prompt_messages = formatted_prompt.to_messages()
 
     output = llm.invoke(state["messages"] + prompt_messages)
