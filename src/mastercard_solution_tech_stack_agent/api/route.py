@@ -1,12 +1,13 @@
-import logging
 import re
-from typing import Annotated, Union
+import logging
 
+from typing import Annotated, Union
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import JSONResponse
-from langchain_core.messages import AIMessage, HumanMessage
-from langgraph.checkpoint.memory import MemorySaver
+
 from sqlalchemy.exc import SQLAlchemyError
+from fastapi.responses import JSONResponse
+from langgraph.checkpoint.memory import MemorySaver
+from langchain_core.messages import AIMessage, HumanMessage
 from sqlalchemy.orm import Session
 
 from api.data_model import Chat_Message
@@ -23,8 +24,11 @@ from error_trace.errorlogger import (
 )
 from services.manager import create_chat
 from services.mastercard_solution_tech_stack_agent_module.question_agent.graph_engine import (
-    create_graph,
+    create_graph
 )
+
+from services.agent_manger import chat_event
+
 from utilities.helpers import (
     GraphInvocationError,
 )
@@ -77,16 +81,8 @@ async def chat(message: Chat_Message, db: Annotated[Session, Depends(get_db)]):
     Handle AI interaction via LangGraph based on user input.
     """
     try:
-        cleaned_message = re.sub(
-            r"\[/?INST\]|<\|im_start\|>|<\|im_end\|>", "", message.message
-        )
-        user_message = HumanMessage(cleaned_message)
-
-        response = await graph.ainvoke(
-            {"messages": [user_message]},
-            GRAPH_CONFIG
-        )
         
+        response = await chat_event(db=db, message=message)
         ai_message = _extract_ai_message(response)
 
         return AIMessageResponse(
