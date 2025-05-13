@@ -43,18 +43,6 @@ from config.settings import env_config
 # DB_URI = "postgresql://postgres:postgres@localhost:5442/postgres?sslmode=disable"
 db_uri = f"postgresql://{env_config.user}:{env_config.password}@{env_config.host}/{env_config.database}?sslmode=disable"
 
-async def ainvoke(user_message, config):
-    with AsyncConnectionPool(conninfo=db_uri, max_size=20, kwargs=connection_kwargs,) as pool:
-        checkpointer = AsyncPostgresSaver(pool)
-        graph = create_graph(checkpointer=checkpointer)
-
-        response = graph.invoke(
-            {"messages": [user_message]},
-            config
-        )
-
-    return response
-
 # memory = MemorySaver()
 # graph = create_graph(memory=memory)
 
@@ -70,6 +58,35 @@ def invoke(user_message, config):
         )
 
     return response
+
+async def ainvoke(user_message, config):
+    with AsyncConnectionPool(conninfo=db_uri, max_size=20, kwargs=connection_kwargs,) as pool:
+        checkpointer = AsyncPostgresSaver(pool)
+        graph = create_graph(checkpointer=checkpointer)
+
+        response = graph.invoke(
+            {"messages": [user_message]},
+            config
+        )
+
+    return response
+
+def get_state(roomId):
+    config = {
+        "configurable": {
+            "conversation_id": roomId,
+            "thread_id": roomId,
+        }
+    }
+
+    with PostgresSaver.from_conn_string(db_uri) as checkpointer:
+        checkpointer.setup()
+
+        graph = create_graph(checkpointer=checkpointer)
+
+        graph_state = graph.get_state(config)
+
+    return graph_state
 
 async def chat_event(db: Any, message: Chat_Message) -> Dict[str, Any]:
     logger.info(f"TSA145: Received input: {message.message}")

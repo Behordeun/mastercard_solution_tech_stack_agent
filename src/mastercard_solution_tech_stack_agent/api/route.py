@@ -3,6 +3,7 @@ import logging
 
 from typing import Annotated, Union
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.encoders import jsonable_encoder
 
 from sqlalchemy.exc import SQLAlchemyError
 from fastapi.responses import JSONResponse
@@ -27,7 +28,7 @@ from services.mastercard_solution_tech_stack_agent_module.question_agent.graph_e
     create_graph,
 )
 
-from services.agent_manger import chat_event, create_chat
+from services.agent_manger import chat_event, create_chat, get_state
 
 from utilities.helpers import (
     GraphInvocationError,
@@ -128,3 +129,21 @@ async def get_chat_history(room_id, db: Annotated[Session, Depends(get_db)]):
             status_code=500,
             detail="Failed to retrieve chat history due to database error.",
         ) from e
+    
+@chat_router.get("/room_state")
+async def get_room_state(room_id):
+    """
+        Fetches the state of a particular room to the front end.
+    """
+    try:
+        room_state = get_state(room_id)
+
+        return jsonable_encoder(room_state)[0]
+    
+    except Exception as e:
+        logger.exception("Unexpected error in /chat-ai route.")
+        system_logger.error(e, exc_info=True)
+        return JSONResponse(
+            content={"content": "Unexpected server error occurred."},
+            status_code=500,
+        )
