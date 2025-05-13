@@ -4,8 +4,8 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.graph import END, START, StateGraph
 from psycopg_pool import AsyncConnectionPool
 
-from src.mastercard_solution_tech_stack_agent.services.manager import db_uri
-from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_stack_agent_module.utils import (
+from services.manager import db_uri
+from services.mastercard_solution_tech_stack_agent_module.utils import (
     display_graph,
 )
 

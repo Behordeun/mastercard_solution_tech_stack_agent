@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from src.mastercard_solution_tech_stack_agent.config.appconfig import env_config
+from .appconfig import env_config
 
 REQUIRES_SSL = False
 
@@ -15,4 +15,7 @@ engine = create_engine(
         "database": env_config.database,
     },
 )
+
+DATABASE_URL = f"postgresql+asyncpg://{env_config.user}:{env_config.password}@{env_config.host}/{env_config.database}"
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

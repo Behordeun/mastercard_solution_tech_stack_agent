@@ -41,11 +41,12 @@ async function loadChatHistory() {
           chatBox.appendChild(messageDiv);
         }
       });
-    } else {
-      // Handle empty chat history case
-      const chatBox = document.getElementById("chat-box");
-      chatBox.innerHTML = "<p>No chat history available.</p>";
-    }
+    } 
+    // else {
+    //   // Handle empty chat history case
+    //   const chatBox = document.getElementById("chat-box");
+    //   chatBox.innerHTML = "<p>No chat history available.</p>";
+    // }
   } catch (error) {
     console.error("❌ Error loading chat history:", error);
     const chatBox = document.getElementById("chat-box");

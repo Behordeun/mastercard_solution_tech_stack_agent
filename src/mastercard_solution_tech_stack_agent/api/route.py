@@ -9,23 +9,23 @@ from langgraph.checkpoint.memory import MemorySaver
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from src.mastercard_solution_tech_stack_agent.api.data_model import Chat_Message
-from src.mastercard_solution_tech_stack_agent.api.logs_router import (
+from api.data_model import Chat_Message
+from api.logs_router import (
     router as logs_router,
 )
-from src.mastercard_solution_tech_stack_agent.config.db_setup import SessionLocal
-from src.mastercard_solution_tech_stack_agent.database.pd_db import (
+from config.db_setup import SessionLocal
+from database.pd_db import (
     get_conversation_history,
 )
-from src.mastercard_solution_tech_stack_agent.database.schemas import AIMessageResponse
-from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import (
+from database.schemas import AIMessageResponse
+from error_trace.errorlogger import (
     system_logger,
 )
-from src.mastercard_solution_tech_stack_agent.services.manager import create_chat
-from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_stack_agent_module.question_agent.graph_engine import (
+from services.manager import create_chat
+from services.mastercard_solution_tech_stack_agent_module.question_agent.graph_engine import (
     create_graph,
 )
-from src.mastercard_solution_tech_stack_agent.utilities.helpers import (
+from utilities.helpers import (
     GraphInvocationError,
 )
 
@@ -38,6 +38,13 @@ memory = MemorySaver()
 graph = create_graph(memory=memory)
 
 GRAPH_CONFIG = {
+    "configurable": {
+        "conversation_id": "live-chat-session",
+        "thread_id": "live-thread-001",
+    }
+}
+
+config = {
     "configurable": {
         "conversation_id": "live-chat-session",
         "thread_id": "live-thread-001",
@@ -83,7 +90,8 @@ async def chat(message: Chat_Message, db: Annotated[Session, Depends(get_db)]):
         user_message = HumanMessage(cleaned_message)
 
         response = await graph.ainvoke(
-            {"messages": [user_message]}, config=GRAPH_CONFIG
+            {"messages": [user_message]},
+            config
         )
         ai_message = _extract_ai_message(response)
 

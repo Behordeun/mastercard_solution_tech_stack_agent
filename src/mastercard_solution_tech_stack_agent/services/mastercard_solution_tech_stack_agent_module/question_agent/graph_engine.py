@@ -3,24 +3,24 @@ import os
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 
-from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_stack_agent_module.question_agent.nodes import (
+from services.mastercard_solution_tech_stack_agent_module.question_agent.nodes import (
     craft_question_node,
     greeting_node,
     pillar_questions_marker_node,
     pillar_questions_node,
     summary_node,
 )
-from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_stack_agent_module.question_agent.utils import (
+from services.mastercard_solution_tech_stack_agent_module.question_agent.utils import (
     AgentState,
     ConversationStage,
     domain_knowledge_manager,
 )
-from src.mastercard_solution_tech_stack_agent.utilities.prompt_loader import (
+from utilities.prompt_loader import (
     load_prompt_template_from_yaml,
 )
 
 # === Prompt File Paths ===
-PROMPT_DIR = "src/mastercard_solution_tech_stack_agent/services/mastercard_solution_tech_stack_agent_module/prompts"
+PROMPT_DIR = "services/mastercard_solution_tech_stack_agent_module/prompts"
 
 domain_prompt = load_prompt_template_from_yaml(os.path.join(PROMPT_DIR, "domain.yaml"))
 prompt_description_prompt = load_prompt_template_from_yaml(

@@ -4,31 +4,31 @@ from langchain.prompts import load_prompt
 from langchain_core.output_parsers import JsonOutputParser
 from pydantic import BaseModel, Field
 
-from src.mastercard_solution_tech_stack_agent.utilities.helpers import (
+from utilities.helpers import (
     load_pillar_questions,
 )
 
 # Fetch all prompts
 greeting_prompt = load_prompt(
-    "src/mastercard_solution_tech_stack_agent/services/mastercard_solution_tech_stack_agent_module/prompts/greeting.yaml"
+    "services/mastercard_solution_tech_stack_agent_module/prompts/greeting.yaml"
 )
 prompt_description_prompt = load_prompt(
-    "src/mastercard_solution_tech_stack_agent/services/mastercard_solution_tech_stack_agent_module/prompts/project_description.yaml"
+    "services/mastercard_solution_tech_stack_agent_module/prompts/project_description.yaml"
 )
 domain_prompt = load_prompt(
-    "src/mastercard_solution_tech_stack_agent/services/mastercard_solution_tech_stack_agent_module/prompts/domain.yaml"
+    "services/mastercard_solution_tech_stack_agent_module/prompts/domain.yaml"
 )
 specify_goal_prompt = load_prompt(
-    "src/mastercard_solution_tech_stack_agent/services/mastercard_solution_tech_stack_agent_module/prompts/specify_goal.yaml"
+    "services/mastercard_solution_tech_stack_agent_module/prompts/specify_goal.yaml"
 )
 
 pillar_questions = load_pillar_questions(
-    "src/mastercard_solution_tech_stack_agent/services/mastercard_solution_tech_stack_agent_module/data/Sample Pillars and Key Questions-Final copy.csv"
+    "services/mastercard_solution_tech_stack_agent_module/data/Sample Pillars and Key Questions-Final copy.csv"
 )
 
 
 pillar_marker_prompt_template = load_prompt(
-    "src/mastercard_solution_tech_stack_agent/services/mastercard_solution_tech_stack_agent_module/prompts/pillar_marker.yaml"
+    "services/mastercard_solution_tech_stack_agent_module/prompts/pillar_marker.yaml"
 )
 
 

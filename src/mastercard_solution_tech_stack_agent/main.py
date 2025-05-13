@@ -13,14 +13,14 @@ from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 
-from src.mastercard_solution_tech_stack_agent.api.route import chat_router
-from src.mastercard_solution_tech_stack_agent.config import settings
-from src.mastercard_solution_tech_stack_agent.config.appconfig import env_config
-from src.mastercard_solution_tech_stack_agent.config.settings import Settings
-from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import (
+from api.route import chat_router
+from config import settings
+from config.appconfig import env_config
+from config.settings import Settings
+from error_trace.errorlogger import (
     system_logger,
 )
-from src.mastercard_solution_tech_stack_agent.utilities.Printer import printer
+from utilities.Printer import printer
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -112,11 +112,11 @@ if env_config.env != "development":
 # === Mount static assets ===
 app.mount(
     "/static",
-    StaticFiles(directory="src/mastercard_solution_tech_stack_agent/static"),
+    StaticFiles(directory="static"),
     name="static",
 )
 templates = Jinja2Templates(
-    directory="src/mastercard_solution_tech_stack_agent/templates"
+    directory="templates"
 )
 
 

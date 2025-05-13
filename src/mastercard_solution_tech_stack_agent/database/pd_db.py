@@ -6,12 +6,12 @@ from typing import Generator, Optional
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from src.mastercard_solution_tech_stack_agent.config.db_setup import SessionLocal
-from src.mastercard_solution_tech_stack_agent.database.schemas import (
+from config.db_setup import SessionLocal
+from database.schemas import (
     AgentSession,
     ConversationHistory,
 )
-from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import (
+from error_trace.errorlogger import (
     system_logger,
 )
 
