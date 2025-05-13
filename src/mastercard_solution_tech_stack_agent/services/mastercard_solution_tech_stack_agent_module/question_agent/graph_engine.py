@@ -1,5 +1,6 @@
-from langgraph.checkpoint.memory import MemorySaver
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from langgraph.graph.state import CompiledStateGraph
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 
 
@@ -81,7 +82,7 @@ def route_step(state: AgentState):
 
 def create_graph(
     checkpointer: AsyncPostgresSaver = None, memory: MemorySaver = None
-) -> StateGraph:
+) -> CompiledStateGraph:
     """
     Creates the LangGraph graph.
     """

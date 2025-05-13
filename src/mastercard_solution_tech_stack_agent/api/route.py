@@ -22,12 +22,12 @@ from database.schemas import AIMessageResponse
 from error_trace.errorlogger import (
     system_logger,
 )
-from services.manager import create_chat
+
 from services.mastercard_solution_tech_stack_agent_module.question_agent.graph_engine import (
-    create_graph
+    create_graph,
 )
 
-from services.agent_manger import chat_event
+from services.agent_manger import chat_event, create_chat
 
 from utilities.helpers import (
     GraphInvocationError,
@@ -107,18 +107,20 @@ async def chat(message: Chat_Message, db: Annotated[Session, Depends(get_db)]):
             content={"content": "Unexpected server error occurred."},
             status_code=500,
         )
-
-
-# === GET /chat-history ===
+    
 @chat_router.get("/chat-history", response_model_exclude_unset=True)
-async def get_chat_history(room_id: str, db: Annotated[Session, Depends(get_db)]):
+async def get_chat_history(room_id, db: Annotated[Session, Depends(get_db)]):
     """
     Fetch previous chat history for a given room ID.
     """
     try:
-        history = get_conversation_history(db, room_id=room_id)
-        if not history:
+        conversation_history = get_conversation_history(db, room_id=room_id)
+
+        if not conversation_history:
             await create_chat(db=db, room_id=room_id)
+            conversation_history = get_conversation_history(db, room_id=room_id)
+        
+        return conversation_history
     except SQLAlchemyError as e:
         logger.error("Database error retrieving chat history: %s", e, exc_info=True)
         system_logger.error(e, exc_info=True)

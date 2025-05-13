@@ -412,6 +412,7 @@ memory = MemorySaver()
 
 agent = techstack_agent_graph(memory)
 
+agent.update_state
 # Comment save image part
 # file_path = 'output_image.png'
 # output = agent.get_graph().draw_mermaid_png()

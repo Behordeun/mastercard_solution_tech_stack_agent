@@ -25,6 +25,7 @@ from services.mastercard_solution_tech_stack_agent_module.agent import (
 )
 
 from langgraph.checkpoint.postgres import PostgresSaver
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.checkpoint.memory import MemorySaver
 from services.mastercard_solution_tech_stack_agent_module.question_agent.graph_engine import (
     create_graph
@@ -38,17 +39,37 @@ connection_kwargs = {
 }
 from config.settings import env_config
 
-# db_uri = f"postgresql://{env_config.user}:{env_config.password}@{env_config.host}/{env_config.database}"
-
-# with PostgresSaver.from_conn_string(db_uri) as checkpointer:
-#     graph = create_graph(checkpointer=checkpointer)
-
-# pool = AsyncConnectionPool(conninfo=db_uri, max_size=20, kwargs=connection_kwargs)
-# checkpointer = AsyncPostgresSaver(pool)
-
 # === Initialize LangGraph ===
-memory = MemorySaver()
-graph = create_graph(memory=memory)
+# DB_URI = "postgresql://postgres:postgres@localhost:5442/postgres?sslmode=disable"
+db_uri = f"postgresql://{env_config.user}:{env_config.password}@{env_config.host}/{env_config.database}?sslmode=disable"
+
+async def ainvoke(user_message, config):
+    with AsyncConnectionPool(conninfo=db_uri, max_size=20, kwargs=connection_kwargs,) as pool:
+        checkpointer = AsyncPostgresSaver(pool)
+        graph = create_graph(checkpointer=checkpointer)
+
+        response = graph.invoke(
+            {"messages": [user_message]},
+            config
+        )
+
+    return response
+
+# memory = MemorySaver()
+# graph = create_graph(memory=memory)
+
+def invoke(user_message, config):
+    with PostgresSaver.from_conn_string(db_uri) as checkpointer:
+        checkpointer.setup()
+
+        graph = create_graph(checkpointer=checkpointer)
+
+        response = graph.invoke(
+            {"messages": [user_message]},
+            config
+        )
+
+    return response
 
 async def chat_event(db: Any, message: Chat_Message) -> Dict[str, Any]:
     logger.info(f"TSA145: Received input: {message.message}")
@@ -66,10 +87,7 @@ async def chat_event(db: Any, message: Chat_Message) -> Dict[str, Any]:
 
         user_message = HumanMessage(message.message)
 
-        response = await graph.ainvoke(
-            {"messages": [user_message]},
-            config
-        )
+        response = invoke(user_message, config)
 
         insert_conversation(
             db,
@@ -82,7 +100,7 @@ async def chat_event(db: Any, message: Chat_Message) -> Dict[str, Any]:
         return response
 
     except Exception as e:
-        print(e)
+        print(f"Except: {e}")
         system_logger.error(e, exc_info=True)
 
         return {
@@ -94,31 +112,27 @@ async def create_chat(db: Any, room_id: str) -> Dict[str, Any]:
     logger.info(f"Create Chat")
 
     try:
-        user_id = str(uuid.uuid4())
-        insert_conversation(
-            db,
-            ai_message=prompt_template.get("OPENING_TEXT", ""),
-            room_id=room_id,
-            user_message="",
-            user_id=user_id,
-        )
-
         config = {
             "configurable": {
                 "conversation_id": room_id,
                 "thread_id": room_id,
             }
         }
-        
-        agent.update_state(
-            config,
-            {
-                "messages": AIMessage(content=prompt_template.get("OPENING_TEXT", "")),
-                "conversation_stage": ConversationStage.greeting,
-            },
+
+        user_message = HumanMessage("")
+
+        response = invoke(user_message, config)
+
+        insert_conversation(
+            db,
+            ai_message=response['messages'][-1].content,
+            room_id=room_id,
+            user_message="",
+            user_id=str(uuid.uuid4()),
         )
 
     except Exception as e:
+        print(e)
         system_logger.error(e, exc_info=True)
         return {
             "message": "AI processing error. Please try again later.",
