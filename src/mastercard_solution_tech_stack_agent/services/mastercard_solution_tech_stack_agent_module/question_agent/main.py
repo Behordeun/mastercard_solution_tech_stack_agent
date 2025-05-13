@@ -34,7 +34,6 @@ async def main():
         max_size=20,
         kwargs=connection_kwargs,
     ) as pool:
-        # checkpointer = AsyncPostgresSaver(pool)
         memory = MemorySaver()
 
         graph = create_graph(memory=memory)
