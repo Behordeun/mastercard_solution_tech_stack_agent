@@ -11,25 +11,25 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import START, StateGraph
 from langgraph.graph.message import AnyMessage, add_messages
 from langgraph.prebuilt import ToolNode, tools_condition
-from typing_extensions import TypedDict
-
 from services.mastercard_solution_tech_stack_agent_module.toolskit import (
     domain_knowledge_manager,
     tools,
 )
 from services.model import agent_model as model
-from utilities.helpers import (
-    load_pillar_questions,
-    load_yaml_file,
-)
+from typing_extensions import TypedDict
+from utilities.helpers import load_pillar_questions, load_yaml_file
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # === CONFIG ===
-PROMPT_PATH = "services/mastercard_solution_tech_stack_agent_module/prompts/instruction.yaml"
-STACK_PROMPT_PATH = "services/mastercard_solution_tech_stack_agent_module/prompts/stack_prompt.yaml"
+PROMPT_PATH = (
+    "services/mastercard_solution_tech_stack_agent_module/prompts/instruction.yaml"
+)
+STACK_PROMPT_PATH = (
+    "services/mastercard_solution_tech_stack_agent_module/prompts/stack_prompt.yaml"
+)
 
 CSV_QUESTIONS_PATH = "services/mastercard_solution_tech_stack_agent_module/data/Sample Pillars and Key Questions-Final copy.csv"
 

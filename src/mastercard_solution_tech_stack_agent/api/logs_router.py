@@ -1,13 +1,9 @@
 from typing import List, Optional
 
+from database.pd_db import DatabaseSession
+from database.schemas import ChatLog, ConversationHistory
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-
-from database.pd_db import DatabaseSession
-from database.schemas import (
-    ChatLog,
-    ConversationHistory,
-)
 
 router = APIRouter(prefix="/logs", tags=["Chat Logs"])
 

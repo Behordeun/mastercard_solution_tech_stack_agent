@@ -4,12 +4,7 @@ import uuid
 from functools import wraps
 from typing import Any, Callable, Dict
 
-from langchain_core.messages import AIMessage
-
-from api.data_model import (
-    Chat_Message,
-    Chat_Response,
-)
+from api.data_model import Chat_Message, Chat_Response
 from config.settings import env_config
 from database.pd_db import (
     DatabaseSession,
@@ -17,9 +12,8 @@ from database.pd_db import (
     insert_conversation,
 )
 from database.schemas import ChatLog
-from error_trace.errorlogger import (
-    system_logger,
-)
+from error_trace.errorlogger import system_logger
+from langchain_core.messages import AIMessage
 from services.mastercard_solution_tech_stack_agent_module.agent import (
     ConversationStage,
     agent,

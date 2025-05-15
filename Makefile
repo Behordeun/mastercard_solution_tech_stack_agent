@@ -20,6 +20,7 @@ clean:
 	@echo "🧹 Cleaning __pycache__ and .pyc files..."
 	find . -type d -name "__pycache__" -exec rm -r {} +
 	find . -type f -name "*.pyc" -delete
+<<<<<<< HEAD
 
 # ----------------------------------------------------------------------------
 # Development
@@ -53,3 +54,5 @@ run-docker:
 check-env:
 	@echo "🔍 Checking environment configuration..."
 	@poetry run python -c "from config import settings; print('✅ .env validation passed.')"
+=======
+>>>>>>> 010a15f (auto-commit)

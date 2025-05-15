@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Optional, Union
 
 from pydantic import BaseModel, Field
@@ -42,3 +43,28 @@ class Chat_Response(BaseModel):
                 "message": "Hello, how can I assist you?",
             }
         }
+
+
+class ProjectCategory(str, Enum):
+    health = "Health"
+    agriculture = "Agriculture"
+    education = "Education"
+    finance = "Finance"
+    clean_energy = "Clean Energy"
+    others = "Others"
+
+
+class ProjectDescriptionRequest(BaseModel):
+    room_id: str = Field(..., description="Session room ID for tracking")
+    project_title: str = Field(..., description="Title of the project")
+    project_description: str = Field(..., description="Description of the project")
+    category: ProjectCategory = Field(..., description="Predefined or custom category")
+    custom_category: Optional[str] = Field(
+        None,
+        description="If 'Others' is selected, specify a custom category"
+    )
+
+
+class ProjectDescriptionResponse(BaseModel):
+    message: str
+    data: ProjectDescriptionRequest

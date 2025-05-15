@@ -1,7 +1,6 @@
+from config.appconfig import env_config
 from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
-
-from config.appconfig import env_config
 
 if env_config.llm == "GROQ":
     agent_model = ChatGroq(
