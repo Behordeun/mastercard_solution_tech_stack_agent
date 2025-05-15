@@ -1,7 +1,7 @@
 from typing import List, Optional
 
-from database.pd_db import DatabaseSession
-from database.schemas import ChatLog, ConversationHistory
+from src.mastercard_solution_tech_stack_agent.database.pd_db import DatabaseSession
+from src.mastercard_solution_tech_stack_agent.database.schemas import ChatLog, ConversationHistory
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 

@@ -4,13 +4,13 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings
 
-from typing import List
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
 from langchain_huggingface import HuggingFaceEmbeddings
 
 import pandas as pd
 import os
+
 
 def build_faiss_vectorstore(
     input_paths: List[str],

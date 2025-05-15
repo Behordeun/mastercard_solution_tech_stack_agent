@@ -1,4 +1,4 @@
-from config.appconfig import env_config
+from src.mastercard_solution_tech_stack_agent.config.appconfig import env_config
 from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
 

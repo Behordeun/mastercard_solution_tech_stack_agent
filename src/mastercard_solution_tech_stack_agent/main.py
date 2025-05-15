@@ -6,11 +6,11 @@ import logging
 from contextlib import asynccontextmanager
 
 import uvicorn
-from api.route import chat_router
-from config import settings
-from config.appconfig import env_config
-from config.settings import Settings
-from error_trace.errorlogger import system_logger
+from src.mastercard_solution_tech_stack_agent.api.route import chat_router
+from src.mastercard_solution_tech_stack_agent.config import settings
+from src.mastercard_solution_tech_stack_agent.config.appconfig import env_config
+from src.mastercard_solution_tech_stack_agent.config.settings import Settings
+from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import system_logger
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
@@ -18,7 +18,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
-from utilities.Printer import printer
+from src.mastercard_solution_tech_stack_agent.utilities.Printer import printer
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)

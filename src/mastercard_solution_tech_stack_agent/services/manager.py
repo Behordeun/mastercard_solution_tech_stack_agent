@@ -4,17 +4,17 @@ import uuid
 from functools import wraps
 from typing import Any, Callable, Dict
 
-from api.data_model import Chat_Message, Chat_Response
-from config.settings import env_config
-from database.pd_db import (
+from src.mastercard_solution_tech_stack_agent.api.data_model import Chat_Message, Chat_Response
+from src.mastercard_solution_tech_stack_agent.config.settings import env_config
+from src.mastercard_solution_tech_stack_agent.database.pd_db import (
     DatabaseSession,
     get_conversation_history,
     insert_conversation,
 )
-from database.schemas import ChatLog
-from error_trace.errorlogger import system_logger
+from src.mastercard_solution_tech_stack_agent.database.schemas import ChatLog
+from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import system_logger
 from langchain_core.messages import AIMessage
-from services.mastercard_solution_tech_stack_agent_module.agent import (
+from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_stack_agent_module.agent import (
     ConversationStage,
     agent,
     prompt_template,

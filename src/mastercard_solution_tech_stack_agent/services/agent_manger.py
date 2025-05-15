@@ -18,14 +18,14 @@ import logging
 import uuid
 from typing import Any, Dict
 
-from api.data_model import Chat_Message
-from database.pd_db import insert_conversation
-from error_trace.errorlogger import system_logger
+from src.mastercard_solution_tech_stack_agent.api.data_model import Chat_Message
+from src.mastercard_solution_tech_stack_agent.database.pd_db import insert_conversation
+from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import system_logger
 from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from psycopg_pool import AsyncConnectionPool
-from services.mastercard_solution_tech_stack_agent_module.question_agent.graph_engine import (
+from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_stack_agent_module.question_agent.graph_engine import (
     create_graph,
 )
 
@@ -83,10 +83,14 @@ def get_state(session_id):
 
         graph_state = graph.get_state(config)
 
-    return graph_state.values
+    return graph_state
 
-async def chat_event(db: Any, message: Chat_Message, user_id = str(uuid.uuid4())) -> Dict[str, Any]:
-    logger.info(f"TSA145: Received input: {message.message}")
+<<<<<<< HEAD
+=======
+
+>>>>>>> 010a15f (auto-commit)
+async def chat_event(db: Any, message: Chat_Message) -> Dict[str, Any]:
+    logger.info("TSA145: Received input: %s", message.message)
 
     try:
         if not message.message.strip():
@@ -114,7 +118,7 @@ async def chat_event(db: Any, message: Chat_Message, user_id = str(uuid.uuid4())
         return response
 
     except Exception as e:
-        print(f"Except: {e}")
+        print("Except: %s", e)
         system_logger.error(e, exc_info=True)
 
         return {
@@ -122,8 +126,9 @@ async def chat_event(db: Any, message: Chat_Message, user_id = str(uuid.uuid4())
             "sender": "AI",
         }
 
-async def create_chat(db: Any, session_id: str, user_id) -> Dict[str, Any]:
-    logger.info(f"Create Chat")
+
+async def create_chat(db: Any, room_id: str) -> Dict[str, Any]:
+    logger.info("Create Chat")
 
     try:
         config = {

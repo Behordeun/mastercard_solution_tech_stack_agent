@@ -3,16 +3,16 @@ from typing import Dict
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph.message import AnyMessage
-from services.mastercard_solution_tech_stack_agent_module.question_agent.prompts import (
+from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_stack_agent_module.question_agent.prompts import (
     greeting_prompt,
     pillar_marker_parser,
     pillar_marker_prompt_template,
     pillar_questions,
 )
-from services.mastercard_solution_tech_stack_agent_module.question_agent.utils import (
+from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_stack_agent_module.question_agent.utils import (
     AgentState,
 )
-from services.model import agent_model as llm
+from src.mastercard_solution_tech_stack_agent.services.model import agent_model as llm
 
 
 def question_marker(state: AgentState, config: RunnableConfig) -> Dict:

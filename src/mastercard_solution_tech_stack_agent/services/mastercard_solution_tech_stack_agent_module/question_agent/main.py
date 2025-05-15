@@ -1,10 +1,10 @@
 from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.memory import MemorySaver
 from psycopg_pool import AsyncConnectionPool
-from services.manager import db_uri
-from services.mastercard_solution_tech_stack_agent_module.utils import display_graph
+from src.mastercard_solution_tech_stack_agent.services.manager import db_uri
+from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_stack_agent_module.utils import display_graph
 
-from .graph_engine import create_graph
+from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_stack_agent_module.question_agent.graph_engine import create_graph
 
 
 async def main():

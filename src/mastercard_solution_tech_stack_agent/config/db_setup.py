@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from .appconfig import env_config
+from src.mastercard_solution_tech_stack_agent.config.appconfig import env_config
 
 REQUIRES_SSL = False
 
