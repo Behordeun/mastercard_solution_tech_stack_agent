@@ -10,6 +10,7 @@ from src.mastercard_solution_tech_stack_agent.config.db_setup import SessionLoca
 from src.mastercard_solution_tech_stack_agent.database.schemas import (
     AgentSession,
     ConversationHistory,
+    UserSession,
 )
 from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import (
     system_logger,
@@ -75,7 +76,7 @@ def get_user_session(db: Session, session_id: str) -> Optional[UserSession]:
     try:
         return db.query(UserSession).filter_by(session_id=session_id).first()
     except SQLAlchemyError as e:
-        system_logger.error(f"Error fetching user session: {e}", exc_info=True)
+        system_logger.error("Error fetching user session: %s", e, exc_info=True)
         raise
 
 
@@ -96,7 +97,7 @@ def save_summary(db: Session, session_id, summary):
     except SQLAlchemyError as e:
         db.rollback()
         print(e)
-        system_logger.error(f"Error inserting conversation: {str(e)}", exc_info=True)
+        system_logger.error("Error inserting conversation: %s", str(e), exc_info=True)
         raise
 
 
@@ -185,7 +186,7 @@ def get_agent_session(db: Session, session_id: str) -> Optional[AgentSession]:
     try:
         return db.query(AgentSession).filter_by(session_id=session_id).first()
     except Exception as e:
-        logger.error(f"Error fetching agent session: {str(e)}")
+        logger.error("Error fetching agent session: %s", str(e))
         raise
 
 
@@ -209,5 +210,5 @@ def save_agent_session(
         db.commit()
     except Exception as e:
         db.rollback()
-        logger.error(f"Error saving agent session: {str(e)}")
+        logger.error("Error saving agent session: %s", str(e))
         raise
