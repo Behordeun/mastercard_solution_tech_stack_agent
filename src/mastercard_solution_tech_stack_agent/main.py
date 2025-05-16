@@ -124,12 +124,12 @@ async def serve_ui(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 # === Serve Summarization ===
-@app.get("/", response_class=HTMLResponse)
+@app.get("/summary", response_class=HTMLResponse)
 async def serve_summary(request: Request):
     return templates.TemplateResponse("summarization.html", {"request": request})
 
 # === TechStack Recommendation ===
-@app.get("/", response_class=HTMLResponse)
+@app.get("/techstack", response_class=HTMLResponse)
 async def serve_techstack(request: Request):
     return templates.TemplateResponse("techstack.html", {"request": request})
 
