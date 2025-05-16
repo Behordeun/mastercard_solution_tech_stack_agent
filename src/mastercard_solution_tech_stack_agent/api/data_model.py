@@ -60,8 +60,7 @@ class ProjectDescriptionRequest(BaseModel):
     project_description: str = Field(..., description="Description of the project")
     category: ProjectCategory = Field(..., description="Predefined or custom category")
     custom_category: Optional[str] = Field(
-        None,
-        description="If 'Others' is selected, specify a custom category"
+        None, description="If 'Others' is selected, specify a custom category"
     )
 
 

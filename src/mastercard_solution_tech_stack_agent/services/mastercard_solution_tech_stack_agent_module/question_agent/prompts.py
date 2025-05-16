@@ -3,7 +3,10 @@ from typing import Optional
 from langchain.prompts import load_prompt
 from langchain_core.output_parsers import JsonOutputParser
 from pydantic import BaseModel, Field
-from src.mastercard_solution_tech_stack_agent.utilities.helpers import load_pillar_questions
+
+from src.mastercard_solution_tech_stack_agent.utilities.helpers import (
+    load_pillar_questions,
+)
 
 # Fetch all prompts
 greeting_prompt = load_prompt(

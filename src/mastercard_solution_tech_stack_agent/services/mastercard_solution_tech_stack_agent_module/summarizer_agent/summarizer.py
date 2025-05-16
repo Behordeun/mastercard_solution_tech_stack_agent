@@ -27,6 +27,7 @@ parser = JsonOutputParser(pydantic_object=SummarizedOutput)
 
 summirization_prompt_template = PromptTemplate.from_template(summarization_prompt)
 
+
 def get_conversation_summary(conversation: str) -> str:
     chain = summirization_prompt_template | llm | parser
 

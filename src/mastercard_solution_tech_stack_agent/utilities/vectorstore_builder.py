@@ -53,8 +53,7 @@ def get_vectorstore():
 
     if os.path.exists(vectordb_path):
         vector_store = Chroma(
-            persist_directory=vectordb_path,
-            embedding_function=embeddings
+            persist_directory=vectordb_path, embedding_function=embeddings
         )
         return vector_store
 

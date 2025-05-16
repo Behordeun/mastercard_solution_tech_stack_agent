@@ -57,6 +57,7 @@ def get_requirements(state: State):
     response = llm.invoke(messages)
     return {"requirements": response.content}
 
+
 def generate(state: State):
     docs_content = "\n\n".join(doc for doc in state["context"])
     messages = recommender_prompt_template.invoke({"requirements": state["requirements"], "context": docs_content, "question":state["summary"]})
@@ -65,7 +66,9 @@ def generate(state: State):
 
 def recommend_teck_stack(messages, user_query):
     # Compile application and test
-    graph_builder = StateGraph(State).add_sequence([get_requirements, retrieve, generate])
+    graph_builder = StateGraph(State).add_sequence(
+        [get_requirements, retrieve, generate]
+    )
     graph_builder.add_edge(START, "get_requirements")
     graph = graph_builder.compile()
     result = graph.invoke({"summary":user_query})

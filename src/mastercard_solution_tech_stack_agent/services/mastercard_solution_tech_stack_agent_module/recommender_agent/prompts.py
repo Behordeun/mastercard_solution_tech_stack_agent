@@ -48,8 +48,6 @@ Instructions:
 """
 
 
-
-
 REQUIREMENTS_PROMPT = """
   You are a Requirement Gathering agent who is responsible for understanding and extracting technical requirements that will be needed for recommending personalized tech stack from  user natural language input.
 
