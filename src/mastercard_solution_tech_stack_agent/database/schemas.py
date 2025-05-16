@@ -1,6 +1,16 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
-from sqlalchemy import JSON, Column, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    func,
+)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
@@ -57,6 +67,90 @@ class AgentSession(Base):
     asked_questions = Column(JSON, default=[])
     updated_at = Column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+# === Users ===
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    hashed_password = Column(String(255), nullable=False)
+    first_name = Column(String(100), nullable=False)
+    last_name = Column(String(100), nullable=False)
+
+    is_active = Column(Boolean, default=True)
+    is_verified = Column(Boolean, default=False)
+    is_deleted = Column(Boolean, default=False)
+    is_admin = Column(Boolean, default=False)
+    is_super_admin = Column(Boolean, default=False)
+
+    created_at = Column(
+        DateTime(timezone=True), default=datetime.now(timezone.utc), nullable=False
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=datetime.now(timezone.utc),
+        onupdate=datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+    # Relationships
+    profiles = relationship(
+        "UserProfile", back_populates="user", cascade="all, delete-orphan"
+    )
+    conversation_histories = relationship(
+        "ConversationHistory", back_populates="user", cascade="all, delete-orphan"
+    )
+    chat_logs = relationship(
+        "ChatLog", back_populates="user", cascade="all, delete-orphan"
+    )
+    ai_message_responses = relationship(
+        "AIMessageResponse", back_populates="user", cascade="all, delete-orphan"
+    )
+
+
+# === User Profiles ===
+class UserProfile(Base):
+    __tablename__ = "user_profiles"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+
+    profile_picture = Column(String, nullable=True)
+
+    otp = Column(String(6), nullable=True)
+    otp_created_at = Column(DateTime(timezone=True), nullable=True)
+
+    created_at = Column(DateTime(timezone=True), default=func.now(), nullable=False)
+    updated_at = Column(
+        DateTime(timezone=True), default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    # Relationships
+    user = relationship("User", back_populates="profiles")
+    ai_message_responses = relationship(
+        "AIMessageResponse", back_populates="profile", cascade="all, delete-orphan"
+    )
+
+
+# === Admins ===
+class Admin(Base):
+    __tablename__ = "admins"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    email = Column(String(255), unique=True, nullable=False)
+    password = Column(String(255), nullable=False)
+    is_superuser = Column(Boolean, default=False)
+
+    created_at = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=datetime.now(timezone.utc),
+        onupdate=datetime.now(timezone.utc),
     )
 
 

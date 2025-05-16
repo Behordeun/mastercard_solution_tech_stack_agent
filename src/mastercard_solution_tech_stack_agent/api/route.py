@@ -45,8 +45,8 @@ from src.mastercard_solution_tech_stack_agent.utilities.helpers import (
 )
 
 logger = logging.getLogger(__name__)
-chat_router = APIRouter()
-chat_router.include_router(logs_router)
+router = APIRouter()
+router.include_router(logs_router)
 
 GRAPH_CONFIG = {
     "configurable": {
@@ -81,8 +81,24 @@ def _extract_ai_message(response: Union[AIMessage, dict]) -> AIMessage:
     return AIMessage(content="AI could not generate a valid response.")
 
 
+router = APIRouter(
+    responses={
+        200: {"description": "Success - Request was successful."},
+        201: {"description": "Created - Resource was successfully created."},
+        400: {"description": "Bad Request - Missing or incorrect parameters."},
+        401: {"description": "Unauthorized - Login required."},
+        403: {"description": "Forbidden - Insufficient permissions."},
+        404: {"description": "Not Found - Resource not found."},
+        409: {"description": "Conflict - Data conflict occurred."},
+        422: {"description": "Unprocessable Entity - Validation error."},
+        500: {"description": "Internal Server Error."},
+    }
+)
+router.include_router(logs_router)
+
+
 # === POST /chat-ai ===
-@chat_router.post("/chat-ai", response_model=AIMessageResponse)
+@router.post("/chat-ai", response_model=AIMessageResponse)
 async def chat(message: Chat_Message, db: Annotated[Session, Depends(get_db)]):
     """
     Handle AI interaction via LangGraph based on user input.
@@ -116,7 +132,7 @@ async def chat(message: Chat_Message, db: Annotated[Session, Depends(get_db)]):
         )
 
 
-@chat_router.get("/session-history", response_model_exclude_unset=True)
+@router.get("/session-history", response_model_exclude_unset=True)
 async def get_chat_history(session_id, db: Annotated[Session, Depends(get_db)]):
     """
     Fetch previous chat history for a given room ID.
@@ -138,7 +154,7 @@ async def get_chat_history(session_id, db: Annotated[Session, Depends(get_db)]):
         ) from e
 
 
-@chat_router.get("/session_state")
+@router.get("/session_state")
 async def get_room_state(session_id):
     """
     Fetches the state of a particular room to the front end.
@@ -157,7 +173,7 @@ async def get_room_state(session_id):
         )
 
 
-@chat_router.post("/project-description", response_model=ProjectDescriptionResponse)
+@router.post("/project-description", response_model=ProjectDescriptionResponse)
 async def project_description(payload: ProjectDescriptionRequest):
     """
     Accepts project title, description, category, and session_id.
@@ -180,7 +196,7 @@ async def project_description(payload: ProjectDescriptionRequest):
     )
 
 
-@chat_router.get("/conversation_summary", response_model=ConversationSummary)
+@router.get("/conversation_summary", response_model=ConversationSummary)
 async def coversation_summary(session_id, db: Annotated[Session, Depends(get_db)]):
     """
     Fetch the conversation summary
@@ -209,7 +225,7 @@ async def coversation_summary(session_id, db: Annotated[Session, Depends(get_db)
         )
 
 
-@chat_router.get("/recommeded_stack")
+@router.get("/recommeded_stack")
 async def recommend_stack(session_id, db: Annotated[Session, Depends(get_db)]):
     """
     Fetch the recommend stack

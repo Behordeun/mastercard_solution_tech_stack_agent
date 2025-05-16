@@ -1,5 +1,5 @@
 ﻿,Pillar,Description,Key Questions
-1,Software,"Focuses on how the solution will be built, including frontend, backend, APIs, and cloud infrastructure.","How do you envision users interacting with your platform? (Web app, mobile phones, etc.)"
+1,Software,"Focuses on how the solution will be built, including frontend, backend, APIs, and cloud infrastructure.","How do you envision users interacting with your platform? (Web app, mobile app, or both?)"
 2,,,"Do you require integration with third-party services, such as payment processors or external APIs?"
 3,,,What level of scalability do you anticipate for your platform?
 4,,,"Would you prefer a low-code/no-code approach, or do you need a custom-built system?"

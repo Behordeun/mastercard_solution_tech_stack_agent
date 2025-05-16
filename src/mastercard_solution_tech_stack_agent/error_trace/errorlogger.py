@@ -16,7 +16,7 @@ class LogLevel(Enum):
 
 
 class Logger:
-    def __init__(self, log_dir: str = "src/logs"):
+    def __init__(self, log_dir: str = "src/mastercard_solution_tech_stack_agent/logs") -> None:
         self.log_dir = Path(log_dir)
         self.log_files = {
             LogLevel.INFO: self.log_dir / "info.log",

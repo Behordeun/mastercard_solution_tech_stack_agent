@@ -19,3 +19,11 @@ engine = create_engine(
 DATABASE_URL = f"postgresql+asyncpg://{env_config.user}:{env_config.password}@{env_config.host}/{env_config.database}"
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
