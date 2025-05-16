@@ -35,7 +35,7 @@ connection_kwargs = {
     "autocommit": True,
     "prepare_threshold": 0,
 }
-from config.settings import env_config
+from src.mastercard_solution_tech_stack_agent.config.settings import env_config
 
 # === Initialize LangGraph ===
 # DB_URI = "postgresql://postgres:postgres@localhost:5442/postgres?sslmode=disable"
@@ -85,10 +85,7 @@ def get_state(session_id):
 
     return graph_state
 
-<<<<<<< HEAD
-=======
 
->>>>>>> 010a15f (auto-commit)
 async def chat_event(db: Any, message: Chat_Message) -> Dict[str, Any]:
     logger.info("TSA145: Received input: %s", message.message)
 
