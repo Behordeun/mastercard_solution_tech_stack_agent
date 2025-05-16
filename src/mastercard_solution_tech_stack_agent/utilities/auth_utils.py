@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from src.mastercard_solution_tech_stack_agent.config.appconfig import env_config
 from src.mastercard_solution_tech_stack_agent.database.pd_db import get_db
+from src.mastercard_solution_tech_stack_agent.database.schemas import User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
 
