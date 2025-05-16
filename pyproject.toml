@@ -3,7 +3,10 @@ name = "mastercard-solution-tech-stack-agent"
 version = "0.1.0"
 description = "A FastAPI-based Solution Architecture Tech Stack Agent for Mastercard Foundation."
 authors = [
-    {name = "Muhammad Abiodun SULAIMAN",email = "abiodun.msulaiman@gmail.com"}
+    { name = "Muhammad Abiodun SULAIMAN", email = "muhammad@datasciencenigeria.ai" },
+    { name = "Godsgift Olomu", email = "godsgift@datasciencenigeria.ai" },
+    { name = "Anjuwon Ololade", email = "anjuwon@datasciencenigeria.ai" },
+    { name = "Ibrahim Ogunbiyi", email = "ibrahim@datasciencenigeria.ai" }
 ]
 readme = "README.md"
 
