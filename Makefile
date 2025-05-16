@@ -34,3 +34,22 @@ dev:
 		--reload \
 		--reload-dir $(pwd)/src/mastercard_solution_tech_stack_agent \
 		--reload-exclude .venv
+
+# -----
+# Docker
+# ---
+
+# Build the docker image
+docker-build:
+	@echo "🐳 Builidng docker image..."
+	@docker build -t herbehordeun/mastercard_solution_tech_stack_agent:latest .
+
+# Run the app in Docker
+run-docker:
+	@echo "🐳 Starting full dev stack using Docker Compose..."
+	@docker compose up -d
+
+# Check if all required environment variables are set
+check-env:
+	@echo "🔍 Checking environment configuration..."
+	@poetry run python -c "from config import settings; print('✅ .env validation passed.')"
