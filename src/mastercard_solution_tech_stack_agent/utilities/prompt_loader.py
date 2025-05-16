@@ -1,8 +1,7 @@
 import os
 
 import yaml
-from langchain_core.prompts import (ChatPromptTemplate,
-                                    HumanMessagePromptTemplate)
+from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
 
 
 def load_prompt_template_from_yaml(path: str) -> ChatPromptTemplate:

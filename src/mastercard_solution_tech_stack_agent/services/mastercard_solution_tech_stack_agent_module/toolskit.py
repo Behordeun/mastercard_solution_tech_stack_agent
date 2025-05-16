@@ -10,11 +10,9 @@ from langchain.tools import Tool
 from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings
 
-from src.mastercard_solution_tech_stack_agent.config.db_setup import \
-    SessionLocal
+from src.mastercard_solution_tech_stack_agent.config.db_setup import SessionLocal
 from src.mastercard_solution_tech_stack_agent.config.settings import Settings
-from src.mastercard_solution_tech_stack_agent.services.model import \
-    agent_model as model
+from src.mastercard_solution_tech_stack_agent.services.model import agent_model as model
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

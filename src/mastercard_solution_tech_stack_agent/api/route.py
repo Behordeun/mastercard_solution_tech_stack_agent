@@ -11,23 +11,32 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from src.mastercard_solution_tech_stack_agent.api.data_model import (
-    Chat_Message, ProjectDescriptionRequest, ProjectDescriptionResponse)
-from src.mastercard_solution_tech_stack_agent.api.logs_router import \
-    router as logs_router
-from src.mastercard_solution_tech_stack_agent.config.db_setup import \
-    SessionLocal
-from src.mastercard_solution_tech_stack_agent.database.pd_db import \
-    get_conversation_history
-from src.mastercard_solution_tech_stack_agent.database.schemas import \
-    AIMessageResponse
-from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import \
-    system_logger
+    Chat_Message,
+    ProjectDescriptionRequest,
+    ProjectDescriptionResponse,
+)
+from src.mastercard_solution_tech_stack_agent.api.logs_router import (
+    router as logs_router,
+)
+from src.mastercard_solution_tech_stack_agent.config.db_setup import SessionLocal
+from src.mastercard_solution_tech_stack_agent.database.pd_db import (
+    get_conversation_history,
+)
+from src.mastercard_solution_tech_stack_agent.database.schemas import AIMessageResponse
+from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import (
+    system_logger,
+)
 from src.mastercard_solution_tech_stack_agent.services.agent_manger import (
-    chat_event, create_chat, get_state)
-from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_stack_agent_module.question_agent.graph_engine import \
-    create_graph
-from src.mastercard_solution_tech_stack_agent.utilities.helpers import \
-    GraphInvocationError
+    chat_event,
+    create_chat,
+    get_state,
+)
+from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_stack_agent_module.question_agent.graph_engine import (
+    create_graph,
+)
+from src.mastercard_solution_tech_stack_agent.utilities.helpers import (
+    GraphInvocationError,
+)
 
 logger = logging.getLogger(__name__)
 chat_router = APIRouter()

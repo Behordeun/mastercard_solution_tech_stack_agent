@@ -5,12 +5,15 @@ from langchain_core.runnables import RunnableConfig
 from langgraph.graph.message import AnyMessage
 
 from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_stack_agent_module.question_agent.prompts import (
-    greeting_prompt, pillar_marker_parser, pillar_marker_prompt_template,
-    pillar_questions)
-from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_stack_agent_module.question_agent.utils import \
-    AgentState
-from src.mastercard_solution_tech_stack_agent.services.model import \
-    agent_model as llm
+    greeting_prompt,
+    pillar_marker_parser,
+    pillar_marker_prompt_template,
+    pillar_questions,
+)
+from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_stack_agent_module.question_agent.utils import (
+    AgentState,
+)
+from src.mastercard_solution_tech_stack_agent.services.model import agent_model as llm
 
 
 def question_marker(state: AgentState, config: RunnableConfig) -> Dict:
