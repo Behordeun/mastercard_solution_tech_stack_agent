@@ -1,4 +1,4 @@
-import re
+import uuid
 import logging
 
 from typing import Annotated, Union
@@ -11,15 +11,18 @@ from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.messages import AIMessage, HumanMessage
 from sqlalchemy.orm import Session
 
-from api.data_model import Chat_Message
+from api.data_model import Chat_Message, AIMessageResponse, ConversationSummary
 from api.logs_router import (
     router as logs_router,
 )
-from config.db_setup import SessionLocal
+from config.db_setup import (
+    SessionLocal,
+    
+)
 from database.pd_db import (
     get_conversation_history,
+    save_summary
 )
-from database.schemas import AIMessageResponse
 from error_trace.errorlogger import (
     system_logger,
 )
@@ -27,6 +30,8 @@ from error_trace.errorlogger import (
 from services.mastercard_solution_tech_stack_agent_module.question_agent.graph_engine import (
     create_graph,
 )
+
+from services.mastercard_solution_tech_stack_agent_module.summarizer_agent.summarizer import get_conversation_summary
 
 from services.agent_manger import chat_event, create_chat, get_state
 
@@ -109,17 +114,17 @@ async def chat(message: Chat_Message, db: Annotated[Session, Depends(get_db)]):
             status_code=500,
         )
     
-@chat_router.get("/chat-history", response_model_exclude_unset=True)
-async def get_chat_history(room_id, db: Annotated[Session, Depends(get_db)]):
+@chat_router.get("/session-history", response_model_exclude_unset=True)
+async def get_chat_history(session_id, db: Annotated[Session, Depends(get_db)]):
     """
     Fetch previous chat history for a given room ID.
     """
     try:
-        conversation_history = get_conversation_history(db, room_id=room_id)
+        conversation_history = get_conversation_history(db, session_id=session_id)
 
         if not conversation_history:
-            await create_chat(db=db, room_id=room_id)
-            conversation_history = get_conversation_history(db, room_id=room_id)
+            await create_chat(db=db, session_id=session_id, user_id=str(uuid.uuid4()))
+            conversation_history = get_conversation_history(db, session_id=session_id)
         
         return conversation_history
     except SQLAlchemyError as e:
@@ -130,18 +135,60 @@ async def get_chat_history(room_id, db: Annotated[Session, Depends(get_db)]):
             detail="Failed to retrieve chat history due to database error.",
         ) from e
     
-@chat_router.get("/room_state")
-async def get_room_state(room_id):
+@chat_router.get("/session_state")
+async def get_room_state(session_id):
     """
         Fetches the state of a particular room to the front end.
     """
     try:
-        room_state = get_state(room_id)
+        session_state = get_state(session_id)
 
-        return jsonable_encoder(room_state)[0]
+        return jsonable_encoder(session_state)[0]
     
     except Exception as e:
-        logger.exception("Unexpected error in /chat-ai route.")
+        logger.exception("Unexpected error in /session_state route.")
+        system_logger.error(e, exc_info=True)
+        return JSONResponse(
+            content={"content": "Unexpected server error occurred."},
+            status_code=500,
+        )
+    
+@chat_router.get("/conversation_summary", response_model=ConversationSummary)
+async def coversation_summary(session_id, db: Annotated[Session, Depends(get_db)]):
+    """
+        Fetch the conversation summary
+    """
+
+    try: 
+        session_state = get_state(session_id)
+
+        summary = get_conversation_summary(str(session_state[0]))
+
+        saved_summary = save_summary(db = db, session_id=session_id, summary=summary)
+
+        print(f"Saved summary: {saved_summary}")
+        return ConversationSummary(summary=summary)
+    except Exception as e:
+        logger.exception("Unexpected error in /recommend_stack route.")
+        system_logger.error(e, exc_info=True)
+        return JSONResponse(
+            content={"content": "Unexpected server error occurred."},
+            status_code=500,
+        )
+    
+@chat_router.get("/recommeded_stack")
+async def recommend_stack(session_id):
+    """
+        Fetch the recommend stack
+    """
+
+    try: 
+        session_state = get_state(session_id)
+
+        return get_conversation_summary(str(session_state[0]))
+    
+    except Exception as e:
+        logger.exception("Unexpected error in /recommend_stack route.")
         system_logger.error(e, exc_info=True)
         return JSONResponse(
             content={"content": "Unexpected server error occurred."},

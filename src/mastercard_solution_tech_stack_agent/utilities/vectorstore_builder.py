@@ -45,15 +45,12 @@ BASE_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
 
 
 def get_vectorstore():
-
     vectordb_path = os.path.join(BASE_DIR, "kb_vectorstore", "chroma")
-    # initalize embedding model
 
+    # initalize embedding model
     embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
 
-
     if os.path.exists(kb_path):
-
         vector_store = Chroma(
             persist_directory=vectordb_path,
             embedding_function=embeddings
@@ -78,7 +75,6 @@ def get_vectorstore():
         for _, d in kb_data.iterrows()
     ]
 
-    
     vector_store = Chroma.from_documents(
         documents=kb_result,
         embedding=embeddings,

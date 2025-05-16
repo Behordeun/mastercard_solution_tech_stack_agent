@@ -1,32 +1,34 @@
 from datetime import datetime
-from typing import Any, Dict, Optional
-
-from pydantic import BaseModel
-from sqlalchemy import Column, DateTime, Integer, String, Text, func
+from sqlalchemy import Column, DateTime, Integer, String, Text, func, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
 from sqlalchemy.types import JSON
 
 Base = declarative_base()
 
+class UserSession(Base):
+    __tablename__ = "user_sessions"
 
-class AIMessageResponse(BaseModel):
-    content: str
-    id: Optional[str] = None
-    usage_metadata: Optional[Dict[str, Any]] = None
-    response_metadata: Optional[Dict[str, Any]] = None
-    additional_kwargs: Optional[Dict[str, Any]] = None
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(String, nullable=False, unique=True)
+    user_id = Column(String)
+    conversation_summary = Column(String)
+    recommended_stack = Column(String)
 
+    conversation_history = relationship(
+        "ConversationHistory", back_populates="user_session")
 
 class ConversationHistory(Base):
     __tablename__ = "conversation_history"
 
     id = Column(Integer, primary_key=True, index=True)
-    room_id = Column(String, nullable=False)
+    session_id = Column(String, ForeignKey("user_sessions.session_id"), nullable=False)
     user_id = Column(String, nullable=False)
     user_message = Column(String)
     ai_message = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+    user_session = relationship("UserSession", back_populates="conversation_history")
 
 class ChatLog(Base):
     __tablename__ = "chat_logs"

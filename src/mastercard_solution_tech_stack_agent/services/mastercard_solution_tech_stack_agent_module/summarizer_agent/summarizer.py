@@ -1,5 +1,5 @@
 from langchain_core.prompts import PromptTemplate
-from src.mastercard_solution_tech_stack_agent.services.model import agent_model as llm
+from services.model import agent_model as llm
 
 
 summarization_prompt = """

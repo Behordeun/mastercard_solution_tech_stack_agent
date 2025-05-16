@@ -11,6 +11,7 @@ from database.pd_db import (
     DatabaseSession,
     get_conversation_history,
     insert_conversation,
+    create_session
 )
 import uuid
 import logging
@@ -71,11 +72,11 @@ async def ainvoke(user_message, config):
 
     return response
 
-def get_state(roomId):
+def get_state(session_id):
     config = {
         "configurable": {
-            "conversation_id": roomId,
-            "thread_id": roomId,
+            "conversation_id": session_id,
+            "thread_id": session_id,
         }
     }
 
@@ -88,7 +89,7 @@ def get_state(roomId):
 
     return graph_state
 
-async def chat_event(db: Any, message: Chat_Message) -> Dict[str, Any]:
+async def chat_event(db: Any, message: Chat_Message, user_id = str(uuid.uuid4())) -> Dict[str, Any]:
     logger.info(f"TSA145: Received input: {message.message}")
 
     try:
@@ -97,8 +98,8 @@ async def chat_event(db: Any, message: Chat_Message) -> Dict[str, Any]:
         
         config = {
             "configurable": {
-                "conversation_id": message.roomId,
-                "thread_id": message.roomId,
+                "conversation_id": message.session_id,
+                "thread_id": message.session_id,
             }
         }
 
@@ -109,9 +110,9 @@ async def chat_event(db: Any, message: Chat_Message) -> Dict[str, Any]:
         insert_conversation(
             db,
             ai_message=response['messages'][-1].content,
-            room_id=message.roomId,
+            session_id=message.session_id,
             user_message=message.message,
-            user_id=str(uuid.uuid4()),
+            user_id=user_id,
         )
 
         return response
@@ -125,14 +126,14 @@ async def chat_event(db: Any, message: Chat_Message) -> Dict[str, Any]:
             "sender": "AI",
         }
 
-async def create_chat(db: Any, room_id: str) -> Dict[str, Any]:
+async def create_chat(db: Any, session_id: str, user_id) -> Dict[str, Any]:
     logger.info(f"Create Chat")
 
     try:
         config = {
             "configurable": {
-                "conversation_id": room_id,
-                "thread_id": room_id,
+                "conversation_id": session_id,
+                "thread_id": session_id,
             }
         }
 
@@ -140,16 +141,22 @@ async def create_chat(db: Any, room_id: str) -> Dict[str, Any]:
 
         response = invoke(user_message, config)
 
+        create_session(
+            db,
+            session_id=session_id,
+            user_id=user_id,
+        )
+
+
         insert_conversation(
             db,
             ai_message=response['messages'][-1].content,
-            room_id=room_id,
+            session_id=session_id,
             user_message="",
-            user_id=str(uuid.uuid4()),
+            user_id=user_id,
         )
 
     except Exception as e:
-        print(e)
         system_logger.error(e, exc_info=True)
         return {
             "message": "AI processing error. Please try again later.",

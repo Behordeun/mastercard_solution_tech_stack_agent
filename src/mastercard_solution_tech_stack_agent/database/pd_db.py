@@ -10,6 +10,7 @@ from config.db_setup import SessionLocal
 from database.schemas import (
     AgentSession,
     ConversationHistory,
+    UserSession
 )
 from error_trace.errorlogger import (
     system_logger,
@@ -17,14 +18,6 @@ from error_trace.errorlogger import (
 
 logger = logging.getLogger(__name__)
 
-# # ✅ Database connection via env
-# DATABASE_URL = os.getenv("POSTGRES_DB_URL")
-# if not DATABASE_URL:
-#     raise ValueError("🚨 ERROR: POSTGRES_DB_URL is not set. Check your .env file.")
-
-# # ✅ SQLAlchemy engine & session
-# engine = create_engine(DATABASE_URL, echo=True)
-# SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 DatabaseSession = SessionLocal
 
 
@@ -39,13 +32,13 @@ def get_db() -> Generator[Session, None, None]:
 
 
 # ✅ Conversation Insertion
-def insert_conversation(db, room_id, ai_message, user_message, user_id):
+def insert_conversation(db: Session, session_id, ai_message, user_message, user_id):
     """
     Insert a conversation entry into the database with required fields.
     """
     try:
         new_entry = ConversationHistory(
-            room_id=room_id,
+            session_id=session_id,
             user_id=user_id,
             user_message=user_message,
             ai_message=ai_message,
@@ -58,15 +51,75 @@ def insert_conversation(db, room_id, ai_message, user_message, user_id):
     except SQLAlchemyError as e:
         db.rollback()
         system_logger.error(f"Error inserting conversation: {e}", exc_info=True)
+        raise "SQLAlchemyError: Failed to insert conversation into the database."
+
+def create_session(db: Session, session_id: str, user_id: str) -> None:
+    """
+    Create a new session in the database.
+    """
+    try:
+        new_session = UserSession(
+            session_id=session_id,
+            user_id=user_id
+        )
+        db.add(new_session)
+        db.commit()
+        db.refresh(new_session)
+    except SQLAlchemyError as e:
+        db.rollback()
+        system_logger.error(f"Error creating session: {e}", exc_info=True)
         raise
 
+def get_user_session(db: Session, session_id: str) -> Optional[UserSession]:
+    """
+    Retrieve a user session from the database.
+    """
+    try:
+        return db.query(UserSession).filter_by(session_id=session_id).first()
+    except SQLAlchemyError as e:
+        system_logger.error(f"Error fetching user session: {e}", exc_info=True)
+        raise
+
+def save_summary(db: Session, session_id, summary):
+    """
+    Save a conversation summary to the database.
+    """
+    try:
+
+        out = (db.query(UserSession)
+               .filter(UserSession.session_id == session_id)
+               .update({UserSession.conversation_summary: summary}))
+        db.commit()
+        # db.refresh(new_entry)
+        return out 
+    except SQLAlchemyError as e:
+        db.rollback()
+        system_logger.error(f"Error inserting conversation: {e}", exc_info=True)
+        raise
+
+def save_techstack(db: Session, session_id, recommended_stack):
+    """
+    Save the recommended tech stack to the database.
+    """
+    try:
+
+        out = (db.query(UserSession)
+               .filter(UserSession.session_id == session_id)
+               .update({UserSession.recommended_stack: recommended_stack}))
+        db.commit()
+        # db.refresh(new_entry)
+        return out 
+    except SQLAlchemyError as e:
+        db.rollback()
+        system_logger.error(f"Error inserting conversation: {e}", exc_info=True)
+        raise
 
 # ✅ Chat History Retrieval
-def get_conversation_history(db: Session, room_id: str, k: int = 48) -> str:
+def get_conversation_history(db: Session, session_id: str, k: int = 48) -> str:
     try:
         messages = (
             db.query(ConversationHistory)
-            .filter(ConversationHistory.room_id == room_id)
+            .filter(ConversationHistory.session_id == session_id)
             .order_by(ConversationHistory.created_at.desc())
             .limit(k)
             .all()

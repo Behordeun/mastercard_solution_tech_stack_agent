@@ -1,5 +1,5 @@
 const API_URL = "http://127.0.0.1:8000/api/v1/chat-ai";
-const CHAT_HISTORY = "http://127.0.0.1:8000/api/v1/chat-history";
+const CHAT_HISTORY = "http://127.0.0.1:8000/api/v1/session-history";
 
 document.addEventListener("DOMContentLoaded", function() {
   loadChatHistory();
@@ -10,7 +10,7 @@ async function loadChatHistory() {
   localStorage.setItem("tsa145_room", roomId);
 
   try {
-    const response = await fetch(CHAT_HISTORY + "?room_id=" + roomId, {
+    const response = await fetch(CHAT_HISTORY + "?session_id=" + roomId, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
     });
@@ -92,7 +92,7 @@ async function sendMessage() {
     const response = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ roomId, message: userMessage, id: Date.now() }),
+      body: JSON.stringify({session_id: roomId, message: userMessage, id: Date.now() }),
     });
 
     if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);

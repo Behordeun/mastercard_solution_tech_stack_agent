@@ -1,11 +1,23 @@
 from typing import Optional, Union
 
 from pydantic import BaseModel, Field
+from typing import Any, Dict, Optional
 
+from pydantic import BaseModel
 
+class ConversationSummary(BaseModel):
+    summary: str
+
+class AIMessageResponse(BaseModel):
+    content: str
+    id: Optional[str] = None
+    usage_metadata: Optional[Dict[str, Any]] = None
+    response_metadata: Optional[Dict[str, Any]] = None
+    additional_kwargs: Optional[Dict[str, Any]] = None
+    
 class Chat_Message(BaseModel):
     id: Optional[Union[str, int]] = None
-    roomId: str  # ✅ Add this
+    session_id: str  # ✅ Add this
     message: str
 
     class Config:
