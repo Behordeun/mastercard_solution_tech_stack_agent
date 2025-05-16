@@ -3,7 +3,6 @@ from datetime import datetime
 from sqlalchemy import JSON, Column, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
-from sqlalchemy.types import JSON
 
 Base = declarative_base()
 
