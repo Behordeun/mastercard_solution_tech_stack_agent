@@ -7,6 +7,7 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from psycopg_pool import AsyncConnectionPool
 
 from src.mastercard_solution_tech_stack_agent.api.data_model import Chat_Message
+from src.mastercard_solution_tech_stack_agent.config.settings import env_config
 from src.mastercard_solution_tech_stack_agent.database.pd_db import insert_conversation
 from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import (
     system_logger,
@@ -21,7 +22,6 @@ connection_kwargs = {
     "autocommit": True,
     "prepare_threshold": 0,
 }
-from src.mastercard_solution_tech_stack_agent.config.settings import env_config
 
 # === Initialize LangGraph ===
 # DB_URI = "postgresql://postgres:postgres@localhost:5442/postgres?sslmode=disable"
