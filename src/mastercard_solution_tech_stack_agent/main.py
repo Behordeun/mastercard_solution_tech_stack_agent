@@ -1,10 +1,10 @@
 # import libraries
-import logging
 import os
+import uvicorn
 import warnings
+import logging
 from contextlib import asynccontextmanager
 
-import uvicorn
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
@@ -17,9 +17,7 @@ from api.route import chat_router
 from config import settings
 from config.appconfig import env_config
 from config.settings import Settings
-from error_trace.errorlogger import (
-    system_logger,
-)
+from error_trace.errorlogger import  system_logger
 from utilities.Printer import printer
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -125,6 +123,15 @@ templates = Jinja2Templates(
 async def serve_ui(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
+# === Serve Summarization ===
+@app.get("/", response_class=HTMLResponse)
+async def serve_summary(request: Request):
+    return templates.TemplateResponse("summarization.html", {"request": request})
+
+# === TechStack Recommendation ===
+@app.get("/", response_class=HTMLResponse)
+async def serve_techstack(request: Request):
+    return templates.TemplateResponse("techstack.html", {"request": request})
 
 # === Global Exception Logging ===
 @app.exception_handler(Exception)
@@ -135,7 +142,6 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={"detail": "An unexpected error occurred. Please try again later."},
     )
 
-
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
     logger.warning(f"HTTP Exception: {exc.status_code} - {exc.detail}")
@@ -143,7 +149,6 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
         status_code=exc.status_code,
         content={"detail": exc.detail},
     )
-
 
 # === API Info Endpoint ===
 @app.get(f"{settings.API_STR}", status_code=status.HTTP_200_OK)

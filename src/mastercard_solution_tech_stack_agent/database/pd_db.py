@@ -94,7 +94,21 @@ def save_summary(db: Session, session_id, summary):
         return out 
     except SQLAlchemyError as e:
         db.rollback()
-        system_logger.error(f"Error inserting conversation: {e}", exc_info=True)
+        print(e)
+        system_logger.error(f"Error inserting conversation: {str(e)}", exc_info=True)
+        raise
+
+def get_summary(db: Session, session_id: str) -> Optional[str]:
+    """
+    Retrieve a conversation summary from the database.
+    """
+    try:
+        session = db.query(UserSession).filter_by(session_id=session_id).first()
+        if session:
+            return session.conversation_summary
+        return None
+    except SQLAlchemyError as e:
+        system_logger.error(f"Error fetching conversation summary: {e}", exc_info=True)
         raise
 
 def save_techstack(db: Session, session_id, recommended_stack):

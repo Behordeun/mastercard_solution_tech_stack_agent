@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, DateTime, Integer, String, Text, func, ForeignKey
+from sqlalchemy import Column, DateTime, Integer, String, Text, func, ForeignKey, JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy.types import JSON
@@ -13,7 +13,7 @@ class UserSession(Base):
     session_id = Column(String, nullable=False, unique=True)
     user_id = Column(String)
     conversation_summary = Column(String)
-    recommended_stack = Column(String)
+    recommended_stack = Column(JSON)
 
     conversation_history = relationship(
         "ConversationHistory", back_populates="user_session")

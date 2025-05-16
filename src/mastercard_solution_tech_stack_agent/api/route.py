@@ -7,8 +7,7 @@ from fastapi.encoders import jsonable_encoder
 
 from sqlalchemy.exc import SQLAlchemyError
 from fastapi.responses import JSONResponse
-from langgraph.checkpoint.memory import MemorySaver
-from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.messages import AIMessage
 from sqlalchemy.orm import Session
 
 from api.data_model import Chat_Message, AIMessageResponse, ConversationSummary
@@ -21,16 +20,15 @@ from config.db_setup import (
 )
 from database.pd_db import (
     get_conversation_history,
-    save_summary
+    save_summary,
+    get_summary,
+    save_techstack
 )
 from error_trace.errorlogger import (
     system_logger,
 )
 
-from services.mastercard_solution_tech_stack_agent_module.question_agent.graph_engine import (
-    create_graph,
-)
-
+from services.mastercard_solution_tech_stack_agent_module.recommender_agent.recommender import recommend_teck_stack
 from services.mastercard_solution_tech_stack_agent_module.summarizer_agent.summarizer import get_conversation_summary
 
 from services.agent_manger import chat_event, create_chat, get_state
@@ -42,10 +40,6 @@ from utilities.helpers import (
 logger = logging.getLogger(__name__)
 chat_router = APIRouter()
 chat_router.include_router(logs_router)
-
-# === Initialize LangGraph ===
-memory = MemorySaver()
-graph = create_graph(memory=memory)
 
 GRAPH_CONFIG = {
     "configurable": {
@@ -161,13 +155,16 @@ async def coversation_summary(session_id, db: Annotated[Session, Depends(get_db)
 
     try: 
         session_state = get_state(session_id)
+        
+        if session_state.get('done_pillar_step', False) == False:
+            return JSONResponse(
+                content={"content": "Pillar questions not completed."},
+                status_code=400,
+            )
 
-        summary = get_conversation_summary(str(session_state[0]))
-
-        saved_summary = save_summary(db = db, session_id=session_id, summary=summary)
-
-        print(f"Saved summary: {saved_summary}")
-        return ConversationSummary(summary=summary)
+        summary = get_conversation_summary(str(session_state['messages']))
+        saved_summary = save_summary(db = db, session_id=session_id, summary=summary["conversation"])
+        return ConversationSummary(summary=summary["conversation"])
     except Exception as e:
         logger.exception("Unexpected error in /recommend_stack route.")
         system_logger.error(e, exc_info=True)
@@ -177,15 +174,33 @@ async def coversation_summary(session_id, db: Annotated[Session, Depends(get_db)
         )
     
 @chat_router.get("/recommeded_stack")
-async def recommend_stack(session_id):
+async def recommend_stack(session_id, db: Annotated[Session, Depends(get_db)]):
     """
         Fetch the recommend stack
     """
 
     try: 
         session_state = get_state(session_id)
+        if session_state.get('done_pillar_step', False) == False:
+            return JSONResponse(
+                content={"content": "Pillar questions not completed."},
+                status_code=400,
+            )
+        
+        summary = get_summary(db, session_id=session_id)
+        if summary is None:
+            return JSONResponse(
+                content={"content": "Summary not found."},
+                status_code=404,
+            )
 
-        return get_conversation_summary(str(session_state[0]))
+        recommend_stack = recommend_teck_stack(session_state['messages'], summary)
+        save_techstack(db = db, session_id=session_id, recommended_stack=recommend_stack)
+
+        return JSONResponse(
+            content={"content": recommend_stack},
+            status_code=200,
+        )
     
     except Exception as e:
         logger.exception("Unexpected error in /recommend_stack route.")

@@ -87,7 +87,7 @@ def get_state(session_id):
 
         graph_state = graph.get_state(config)
 
-    return graph_state
+    return graph_state.values
 
 async def chat_event(db: Any, message: Chat_Message, user_id = str(uuid.uuid4())) -> Dict[str, Any]:
     logger.info(f"TSA145: Received input: {message.message}")
