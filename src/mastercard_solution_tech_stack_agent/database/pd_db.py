@@ -49,18 +49,16 @@ def insert_conversation(db: Session, session_id, ai_message, user_message, user_
         return new_entry
     except SQLAlchemyError as e:
         db.rollback()
-        system_logger.error(f"Error inserting conversation: {e}", exc_info=True)
+        system_logger.error("Error inserting conversation: %s", e, exc_info=True)
         raise "SQLAlchemyError: Failed to insert conversation into the database."
+
 
 def create_session(db: Session, session_id: str, user_id: str) -> None:
     """
     Create a new session in the database.
     """
     try:
-        new_session = UserSession(
-            session_id=session_id,
-            user_id=user_id
-        )
+        new_session = UserSession(session_id=session_id, user_id=user_id)
         db.add(new_session)
         db.commit()
         db.refresh(new_session)
@@ -68,6 +66,7 @@ def create_session(db: Session, session_id: str, user_id: str) -> None:
         db.rollback()
         system_logger.error(f"Error creating session: {e}", exc_info=True)
         raise
+
 
 def get_user_session(db: Session, session_id: str) -> Optional[UserSession]:
     """
@@ -79,23 +78,27 @@ def get_user_session(db: Session, session_id: str) -> Optional[UserSession]:
         system_logger.error(f"Error fetching user session: {e}", exc_info=True)
         raise
 
+
 def save_summary(db: Session, session_id, summary):
     """
     Save a conversation summary to the database.
     """
     try:
 
-        out = (db.query(UserSession)
-               .filter(UserSession.session_id == session_id)
-               .update({UserSession.conversation_summary: summary}))
+        out = (
+            db.query(UserSession)
+            .filter(UserSession.session_id == session_id)
+            .update({UserSession.conversation_summary: summary})
+        )
         db.commit()
         # db.refresh(new_entry)
-        return out 
+        return out
     except SQLAlchemyError as e:
         db.rollback()
         print(e)
         system_logger.error(f"Error inserting conversation: {str(e)}", exc_info=True)
         raise
+
 
 def get_summary(db: Session, session_id: str) -> Optional[str]:
     """
@@ -107,8 +110,9 @@ def get_summary(db: Session, session_id: str) -> Optional[str]:
             return session.conversation_summary
         return None
     except SQLAlchemyError as e:
-        system_logger.error(f"Error fetching conversation summary: {e}", exc_info=True)
+        system_logger.error("Error fetching conversation summary: %s", e, exc_info=True)
         raise
+
 
 def save_techstack(db: Session, session_id, recommended_stack):
     """
@@ -116,16 +120,19 @@ def save_techstack(db: Session, session_id, recommended_stack):
     """
     try:
 
-        out = (db.query(UserSession)
-               .filter(UserSession.session_id == session_id)
-               .update({UserSession.recommended_stack: recommended_stack}))
+        out = (
+            db.query(UserSession)
+            .filter(UserSession.session_id == session_id)
+            .update({UserSession.recommended_stack: recommended_stack})
+        )
         db.commit()
         # db.refresh(new_entry)
-        return out 
+        return out
     except SQLAlchemyError as e:
         db.rollback()
         system_logger.error(f"Error inserting conversation: {e}", exc_info=True)
         raise
+
 
 # ✅ Chat History Retrieval
 def get_conversation_history(db: Session, session_id: str, k: int = 48) -> str:
@@ -169,14 +176,14 @@ def get_conversation_history(db: Session, session_id: str, k: int = 48) -> str:
         return conversation_parts
 
     except Exception as e:
-        logger.error(f"Error retrieving chat history: {str(e)}")
+        logger.error("Error retrieving chat history: %s", str(e))
         raise
 
 
 # ✅ Agent Session Retrieval
-def get_agent_session(db: Session, room_id: str) -> Optional[AgentSession]:
+def get_agent_session(db: Session, session_id: str) -> Optional[AgentSession]:
     try:
-        return db.query(AgentSession).filter_by(room_id=room_id).first()
+        return db.query(AgentSession).filter_by(session_id=session_id).first()
     except Exception as e:
         logger.error(f"Error fetching agent session: {str(e)}")
         raise
@@ -184,17 +191,19 @@ def get_agent_session(db: Session, room_id: str) -> Optional[AgentSession]:
 
 # ✅ Agent Session Save/Update
 def save_agent_session(
-    db: Session, room_id: str, context: dict, questions: list
+    db: Session, session_id: str, context: dict, questions: list
 ) -> None:
     try:
-        existing = db.query(AgentSession).filter_by(room_id=room_id).first()
+        existing = db.query(AgentSession).filter_by(session_id=session_id).first()
         if existing:
             existing.project_context = context
             existing.asked_questions = questions
         else:
             db.add(
                 AgentSession(
-                    room_id=room_id, project_context=context, asked_questions=questions
+                    session_id=session_id,
+                    project_context=context,
+                    asked_questions=questions,
                 )
             )
         db.commit()

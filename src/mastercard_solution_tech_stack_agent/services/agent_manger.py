@@ -1,23 +1,8 @@
-from typing import Any, Callable, Dict
-from api.data_model import (
-    Chat_Message,
-    Chat_Response,
-)
-from psycopg_pool import AsyncConnectionPool
-
-from langchain_core.messages import AIMessage, HumanMessage
-
-from database.pd_db import (
-    DatabaseSession,
-    get_conversation_history,
-    insert_conversation,
-    create_session
-)
-import uuid
 import logging
-import uuid
 from typing import Any, Dict
 
+from api.data_model import Chat_Message
+from database.pd_db import create_session, insert_conversation
 from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
@@ -58,18 +43,20 @@ def invoke(user_message, config):
 
     return response
 
-<<<<<<< HEAD
+
 async def ainvoke(user_message, config):
-    with AsyncConnectionPool(conninfo=db_uri, max_size=20, kwargs=connection_kwargs,) as pool:
+    with AsyncConnectionPool(
+        conninfo=db_uri,
+        max_size=20,
+        kwargs=connection_kwargs,
+    ) as pool:
         checkpointer = AsyncPostgresSaver(pool)
         graph = create_graph(checkpointer=checkpointer)
 
-        response = graph.invoke(
-            {"messages": [user_message]},
-            config
-        )
+        response = graph.invoke({"messages": [user_message]}, config)
 
     return response
+
 
 def get_state(session_id):
     config = {
@@ -109,7 +96,7 @@ async def chat_event(db: Any, message: Chat_Message) -> Dict[str, Any]:
 
         insert_conversation(
             db,
-            ai_message=response['messages'][-1].content,
+            ai_message=response["messages"][-1].content,
             session_id=message.session_id,
             user_message=message.message,
             user_id=user_id,
@@ -127,7 +114,7 @@ async def chat_event(db: Any, message: Chat_Message) -> Dict[str, Any]:
         }
 
 
-async def create_chat(db: Any, room_id: str) -> Dict[str, Any]:
+async def create_chat(db: Any, session_id: str) -> Dict[str, Any]:
     logger.info("Create Chat")
 
     try:
@@ -148,10 +135,9 @@ async def create_chat(db: Any, room_id: str) -> Dict[str, Any]:
             user_id=user_id,
         )
 
-
         insert_conversation(
             db,
-            ai_message=response['messages'][-1].content,
+            ai_message=response["messages"][-1].content,
             session_id=session_id,
             user_message="",
             user_id=user_id,

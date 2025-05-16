@@ -1,39 +1,46 @@
-import uuid
 import logging
-
+import uuid
 from typing import Annotated, Union
+
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.encoders import jsonable_encoder
-
-from sqlalchemy.exc import SQLAlchemyError
 from fastapi.responses import JSONResponse
 from langchain_core.messages import AIMessage
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from api.data_model import Chat_Message, AIMessageResponse, ConversationSummary, ProjectDescriptionRequest, ProjectDescriptionResponse
-from api.logs_router import (
+from src.mastercard_solution_tech_stack_agent.api.data_model import (
+    AIMessageResponse,
+    Chat_Message,
+    ConversationSummary,
+    ProjectDescriptionRequest,
+    ProjectDescriptionResponse,
+)
+from src.mastercard_solution_tech_stack_agent.api.logs_router import (
     router as logs_router,
 )
-from config.db_setup import (
-    SessionLocal,
-    
-)
-from database.pd_db import (
+from src.mastercard_solution_tech_stack_agent.config.db_setup import SessionLocal
+from src.mastercard_solution_tech_stack_agent.database.pd_db import (
     get_conversation_history,
-    save_summary,
     get_summary,
-    save_techstack
+    save_summary,
+    save_techstack,
 )
-from error_trace.errorlogger import (
+from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import (
     system_logger,
 )
-
-from services.mastercard_solution_tech_stack_agent_module.recommender_agent.recommender import recommend_teck_stack
-from services.mastercard_solution_tech_stack_agent_module.summarizer_agent.summarizer import get_conversation_summary
-
-from services.agent_manger import chat_event, create_chat, get_state
-
-from utilities.helpers import (
+from src.mastercard_solution_tech_stack_agent.services.agent_manger import (
+    chat_event,
+    create_chat,
+    get_state,
+)
+from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_stack_agent_module.recommender_agent.recommender import (
+    recommend_teck_stack,
+)
+from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_stack_agent_module.summarizer_agent.summarizer import (
+    get_conversation_summary,
+)
+from src.mastercard_solution_tech_stack_agent.utilities.helpers import (
     GraphInvocationError,
 )
 
@@ -81,7 +88,7 @@ async def chat(message: Chat_Message, db: Annotated[Session, Depends(get_db)]):
     Handle AI interaction via LangGraph based on user input.
     """
     try:
-        
+
         response = await chat_event(db=db, message=message)
         ai_message = _extract_ai_message(response)
 
@@ -107,7 +114,8 @@ async def chat(message: Chat_Message, db: Annotated[Session, Depends(get_db)]):
             content={"content": "Unexpected server error occurred."},
             status_code=500,
         )
-    
+
+
 @chat_router.get("/session-history", response_model_exclude_unset=True)
 async def get_chat_history(session_id, db: Annotated[Session, Depends(get_db)]):
     """
@@ -119,7 +127,7 @@ async def get_chat_history(session_id, db: Annotated[Session, Depends(get_db)]):
         if not conversation_history:
             await create_chat(db=db, session_id=session_id, user_id=str(uuid.uuid4()))
             conversation_history = get_conversation_history(db, session_id=session_id)
-        
+
         return conversation_history
     except SQLAlchemyError as e:
         logger.error("Database error retrieving chat history: %s", e, exc_info=True)
@@ -133,7 +141,7 @@ async def get_chat_history(session_id, db: Annotated[Session, Depends(get_db)]):
 @chat_router.get("/session_state")
 async def get_room_state(session_id):
     """
-        Fetches the state of a particular room to the front end.
+    Fetches the state of a particular room to the front end.
     """
     try:
         session_state = get_state(session_id)
@@ -175,20 +183,22 @@ async def project_description(payload: ProjectDescriptionRequest):
 @chat_router.get("/conversation_summary", response_model=ConversationSummary)
 async def coversation_summary(session_id, db: Annotated[Session, Depends(get_db)]):
     """
-        Fetch the conversation summary
+    Fetch the conversation summary
     """
 
-    try: 
+    try:
         session_state = get_state(session_id)
-        
-        if session_state.get('done_pillar_step', False) == False:
+
+        if session_state.get("done_pillar_step", False) == False:
             return JSONResponse(
                 content={"content": "Pillar questions not completed."},
                 status_code=400,
             )
 
-        summary = get_conversation_summary(str(session_state['messages']))
-        saved_summary = save_summary(db = db, session_id=session_id, summary=summary["conversation"])
+        summary = get_conversation_summary(str(session_state["messages"]))
+        saved_summary = save_summary(
+            db=db, session_id=session_id, summary=summary["conversation"]
+        )
         return ConversationSummary(summary=summary["conversation"])
     except Exception as e:
         logger.exception("Unexpected error in /recommend_stack route.")
@@ -202,17 +212,17 @@ async def coversation_summary(session_id, db: Annotated[Session, Depends(get_db)
 @chat_router.get("/recommeded_stack")
 async def recommend_stack(session_id, db: Annotated[Session, Depends(get_db)]):
     """
-        Fetch the recommend stack
+    Fetch the recommend stack
     """
 
     try:
         session_state = get_state(session_id)
-        if session_state.get('done_pillar_step', False) == False:
+        if session_state.get("done_pillar_step", False) == False:
             return JSONResponse(
                 content={"content": "Pillar questions not completed."},
                 status_code=400,
             )
-        
+
         summary = get_summary(db, session_id=session_id)
         if summary is None:
             return JSONResponse(
@@ -220,8 +230,8 @@ async def recommend_stack(session_id, db: Annotated[Session, Depends(get_db)]):
                 status_code=404,
             )
 
-        recommend_stack = recommend_teck_stack(session_state['messages'], summary)
-        save_techstack(db = db, session_id=session_id, recommended_stack=recommend_stack)
+        recommend_stack = recommend_teck_stack(session_state["messages"], summary)
+        save_techstack(db=db, session_id=session_id, recommended_stack=recommend_stack)
 
         return JSONResponse(
             content={"content": recommend_stack},

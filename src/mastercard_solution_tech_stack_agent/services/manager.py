@@ -87,14 +87,14 @@ class ChatProcessor:
                 message_dict["message"] = system_message
 
             user_id = message_dict.get("user_id") or str(uuid.uuid4())
-            room_id = message_dict.get("roomId") or message_dict.get("room_id")
-            if not room_id:
-                raise ValueError("Missing 'room_id' in message")
+            session_id = message_dict.get("roomId") or message_dict.get("session_id")
+            if not session_id:
+                raise ValueError("Missing 'session_id' in message")
 
             with DatabaseSession() as session:
                 session.add(
                     ChatLog(
-                        room_id=room_id,
+                        session_id=session_id,
                         user_id=user_id,
                         user_message=message_dict.get("message"),
                         ai_response=ai_message,
@@ -106,7 +106,7 @@ class ChatProcessor:
 
             return Chat_Response(
                 id=str(message_dict.get("id")),
-                roomId=room_id,
+                roomId=session_id,
                 resourceUrls=message_dict.get("resourceUrls"),
                 sender="AI",
                 message=ai_message,
@@ -191,7 +191,7 @@ async def chat_event(db: Any, message: Chat_Message) -> Dict[str, Any]:
         insert_conversation(
             db,
             ai_message=response["message"],
-            room_id=message.roomId,
+            session_id=message.roomId,
             user_message=message.message,
             user_id=str(uuid.uuid4()),
         )
@@ -206,7 +206,7 @@ async def chat_event(db: Any, message: Chat_Message) -> Dict[str, Any]:
         }
 
 
-async def create_chat(db: Any, room_id: str) -> Dict[str, Any]:
+async def create_chat(db: Any, session_id: str) -> Dict[str, Any]:
     logger.info(f"Create Chat")
 
     try:
@@ -214,15 +214,15 @@ async def create_chat(db: Any, room_id: str) -> Dict[str, Any]:
         insert_conversation(
             db,
             ai_message=prompt_template.get("OPENING_TEXT", ""),
-            room_id=room_id,
+            session_id=session_id,
             user_message="",
             user_id=user_id,
         )
 
         config = {
             "configurable": {
-                "conversation_id": room_id,
-                "thread_id": room_id,
+                "conversation_id": session_id,
+                "thread_id": session_id,
             }
         }
         agent.update_state(

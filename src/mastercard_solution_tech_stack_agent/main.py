@@ -1,8 +1,7 @@
 # import libraries
-import os
-import uvicorn
-import warnings
 import logging
+import os
+import warnings
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -124,15 +123,18 @@ templates = Jinja2Templates(directory="templates")
 async def serve_ui(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
+
 # === Serve Summarization ===
 @app.get("/summary", response_class=HTMLResponse)
 async def serve_summary(request: Request):
     return templates.TemplateResponse("summarization.html", {"request": request})
 
+
 # === TechStack Recommendation ===
 @app.get("/techstack", response_class=HTMLResponse)
 async def serve_techstack(request: Request):
     return templates.TemplateResponse("techstack.html", {"request": request})
+
 
 # === Global Exception Logging ===
 @app.exception_handler(Exception)
@@ -143,6 +145,7 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={"detail": "An unexpected error occurred. Please try again later."},
     )
 
+
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
     logger.warning(f"HTTP Exception: {exc.status_code} - {exc.detail}")
@@ -150,6 +153,7 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
         status_code=exc.status_code,
         content={"detail": exc.detail},
     )
+
 
 # === API Info Endpoint ===
 @app.get(f"{settings.API_STR}", status_code=status.HTTP_200_OK)

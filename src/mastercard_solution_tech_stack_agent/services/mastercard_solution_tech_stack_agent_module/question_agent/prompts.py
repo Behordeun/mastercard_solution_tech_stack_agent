@@ -33,10 +33,14 @@ pillar_marker_prompt_template = load_prompt(
     "services/mastercard_solution_tech_stack_agent_module/prompts/pillar_marker.yaml"
 )
 
+
 # Define your desired data structure.
 class pillar_marker_formater(BaseModel):
-    answer_ready: bool = Field(description="If the answer to the pillar question is well structured")
+    answer_ready: bool = Field(
+        description="If the answer to the pillar question is well structured"
+    )
     answer: Optional[str] = Field(description="The provided answer")
     question: Optional[str] = Field(description="The new question")
+
 
 pillar_marker_parser = JsonOutputParser(pydantic_object=pillar_marker_formater)

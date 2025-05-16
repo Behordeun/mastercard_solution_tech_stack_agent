@@ -23,15 +23,15 @@ def get_db():
 
 @router.get("/chat", summary="Get recent chat logs", response_model=List[dict])
 def get_chat_logs(
-    room_id: Optional[str] = None,
+    session_id: Optional[str] = None,
     limit: int = Query(
         50, le=100, description="Max number of logs to return (max 100)"
     ),
     db: Session = Depends(get_db),
 ):
     query = db.query(ChatLog)
-    if room_id:
-        query = query.filter(ChatLog.room_id == room_id)
+    if session_id:
+        query = query.filter(ChatLog.session_id == session_id)
     query = query.order_by(ChatLog.timestamp.desc()).limit(limit)
     logs = query.all()
     return [log.to_dict() for log in logs]
@@ -41,15 +41,15 @@ def get_chat_logs(
     "/history", summary="Get past conversation history", response_model=List[dict]
 )
 def get_conversation_history_logs(
-    room_id: str,
+    session_id: str,
     db: Session = Depends(get_db),
 ):
-    if not room_id:
-        raise HTTPException(status_code=400, detail="room_id is required")
+    if not session_id:
+        raise HTTPException(status_code=400, detail="session_id is required")
 
     logs = (
         db.query(ConversationHistory)
-        .filter(ConversationHistory.room_id == room_id)
+        .filter(ConversationHistory.session_id == session_id)
         .order_by(ConversationHistory.created_at.asc())
         .all()
     )

@@ -1,10 +1,12 @@
 from datetime import datetime
-from sqlalchemy import Column, DateTime, Integer, String, Text, func, ForeignKey, JSON
+
+from sqlalchemy import JSON, Column, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy.types import JSON
 
 Base = declarative_base()
+
 
 class UserSession(Base):
     __tablename__ = "user_sessions"
@@ -16,7 +18,9 @@ class UserSession(Base):
     recommended_stack = Column(JSON)
 
     conversation_history = relationship(
-        "ConversationHistory", back_populates="user_session")
+        "ConversationHistory", back_populates="user_session"
+    )
+
 
 class ConversationHistory(Base):
     __tablename__ = "conversation_history"
@@ -30,11 +34,12 @@ class ConversationHistory(Base):
 
     user_session = relationship("UserSession", back_populates="conversation_history")
 
+
 class ChatLog(Base):
     __tablename__ = "chat_logs"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    room_id = Column(String(100), nullable=False)
+    session_id = Column(String(100), nullable=False)
     user_message = Column(Text, nullable=True)
     ai_response = Column(Text, nullable=True)
     system_note = Column(Text, nullable=True)
@@ -42,13 +47,13 @@ class ChatLog(Base):
     timestamp = Column(DateTime, default=datetime.utcnow)
 
     def __repr__(self):
-        return f"<ChatLog id={self.id} room={self.room_id} time={self.timestamp}>"
+        return f"<ChatLog id={self.id} room={self.session_id} time={self.timestamp}>"
 
 
 class AgentSession(Base):
     __tablename__ = "agent_sessions"
 
-    room_id = Column(String, primary_key=True)
+    session_id = Column(String, primary_key=True)
     project_context = Column(JSON, default={})
     asked_questions = Column(JSON, default=[])
     updated_at = Column(
