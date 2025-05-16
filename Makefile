@@ -32,7 +32,7 @@ dev:
 	poetry run uvicorn src.mastercard_solution_tech_stack_agent.main:app \
 		--host 0.0.0.0 --port 8000 \
 		--reload \
-		--reload-dir $(pwd)/src/mastercard_solution_tech_stack_agent \
+		--reload-dir src/mastercard_solution_tech_stack_agent \
 		--reload-exclude .venv
 
 # -----
