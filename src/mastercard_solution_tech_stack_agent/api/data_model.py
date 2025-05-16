@@ -6,7 +6,6 @@ from typing import Any, Dict, Generic, List, Optional, TypeVar, Union
 
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
-
 # === Log directory setup ===
 LOG_DIR = "src/mastercard_solution_tech_stack_agent/logs"
 os.makedirs(LOG_DIR, exist_ok=True)  # Ensure the logs directory exists

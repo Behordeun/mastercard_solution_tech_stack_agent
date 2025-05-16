@@ -9,8 +9,9 @@ from src.mastercard_solution_tech_stack_agent.database.schemas import (
     ChatLog,
     ConversationHistory,
 )
-from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import system_logger
-
+from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import (
+    system_logger,
+)
 
 # === Log directory setup ===
 LOG_DIR = "src/mastercard_solution_tech_stack_agent/logs"
