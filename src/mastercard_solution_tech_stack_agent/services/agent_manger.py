@@ -1,8 +1,6 @@
 import logging
 from typing import Any, Dict
 
-from api.data_model import Chat_Message
-from database.pd_db import create_session, insert_conversation
 from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
