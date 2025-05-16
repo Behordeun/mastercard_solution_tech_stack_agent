@@ -79,7 +79,7 @@ def get_vectorstore():
             documents=kb_result,
             embedding=embeddings,
             persist_directory=vectordb_path)
-        
+
         return vector_store   
     else:
         raise FileNotFoundError(f"Vectorstore path {vectordb_path} does not exist.")
