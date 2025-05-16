@@ -88,21 +88,12 @@ oauth.register(
     client_secret=env_config.google_client_secret,
     authorize_url=env_config.google_auth_authorize_url,
     authorize_params=None,
-    access_token_url=env_config.google_auth_token_url,
+    access_token_url=env_config.google_access_token_url,
     access_token_params=None,
     refresh_token_url=None,
     redirect_uri=env_config.google_redirect_uri,
     client_kwargs={"scope": "openid email profile"},
     state=None,
-)
-
-oauth.register(
-    name="apple",
-    client_id=env_config.apple_client_id,
-    client_secret=env_config.apple_client_secret,
-    authorize_url=env_config.apple_auth_authorize_url,
-    access_token_url=env_config.apple_auth_access_token_url,
-    client_kwargs={"scope": "email name"},
 )
 
 

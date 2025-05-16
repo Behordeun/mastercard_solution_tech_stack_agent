@@ -1,14 +1,13 @@
 import os
 from datetime import datetime, timezone
 
+from authlib.integrations.starlette_client import OAuth
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
-
-from authlib.integrations.starlette_client import OAuth
 from starlette.requests import Request
 
 from src.mastercard_solution_tech_stack_agent.api.data_model import (
@@ -54,7 +53,7 @@ LOG_FILES = {
 # Initialize OAuth
 oauth = OAuth()
 oauth.register(
-    name='google',
+    name="google",
     client_id=env_config.google_client_id,
     client_secret=env_config.google_client_secret,
     server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
@@ -135,12 +134,14 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
             db.add(user)
             db.commit()
 
-        access_token = create_access_token({
-            "sub": email,
-            "name": f"{first_name} {last_name}",
-            "role": "user",
-            "is_verified": True,
-        })
+        access_token = create_access_token(
+            {
+                "sub": email,
+                "name": f"{first_name} {last_name}",
+                "role": "user",
+                "is_verified": True,
+            }
+        )
 
         refresh_token = create_refresh_token({"sub": email})
 
@@ -150,7 +151,7 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
 
         return response
 
-    except Exception as e:
+    except Exception:
         system_logger.exception("Google login failed")
         raise HTTPException(status_code=400, detail="Google login failed")
 
@@ -403,7 +404,7 @@ async def confirm_account_deletion(
 
     # Soft delete the user account by marking `is_deleted` as True
     user.is_deleted = True
-    user.otp = None # Clear the OTP from the DB table
+    user.otp = None  # Clear the OTP from the DB table
     db.commit()
 
     # Send confirmation email for account deletion

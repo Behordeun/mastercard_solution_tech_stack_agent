@@ -116,13 +116,14 @@ if env_config.env != "development":
     app.add_middleware(HTTPSRedirectMiddleware)
 
 # === Mount static assets ===
-# === Mount static assets ===
 app.mount(
     "/static",
-    StaticFiles(directory="static"),
+    StaticFiles(directory="src/mastercard_solution_tech_stack_agent/static"),
     name="static",
 )
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(
+    directory="src/mastercard_solution_tech_stack_agent/templates"
+)
 
 
 # === Serve frontend ===

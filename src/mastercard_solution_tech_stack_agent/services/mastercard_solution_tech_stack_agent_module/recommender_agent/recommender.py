@@ -5,10 +5,15 @@ from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import PromptTemplate
 from langgraph.graph import START, StateGraph
 from pydantic import BaseModel
-from src.mastercard_solution_tech_stack_agent.services.model import agent_model as llm
-from src.mastercard_solution_tech_stack_agent.utilities.vectorstore_builder import get_vectorstore
 
-from .prompts import RECOMMENDER_PROMPT, REQUIREMENTS_PROMPT
+from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_stack_agent_module.recommender_agent.prompts import (
+    RECOMMENDER_PROMPT,
+    REQUIREMENTS_PROMPT,
+)
+from src.mastercard_solution_tech_stack_agent.services.model import agent_model as llm
+from src.mastercard_solution_tech_stack_agent.utilities.vectorstore_builder import (
+    get_vectorstore,
+)
 
 vector_store = get_vectorstore()
 
