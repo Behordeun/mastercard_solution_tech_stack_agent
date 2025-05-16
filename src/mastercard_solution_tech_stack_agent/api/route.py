@@ -9,7 +9,6 @@ from langchain_core.messages import AIMessage
 from langgraph.checkpoint.memory import MemorySaver
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
-from utilities.helpers import GraphInvocationError
 
 from src.mastercard_solution_tech_stack_agent.api.data_model import (
     Chat_Message, ProjectDescriptionRequest, ProjectDescriptionResponse)
@@ -27,6 +26,8 @@ from src.mastercard_solution_tech_stack_agent.services.agent_manger import (
     chat_event, create_chat, get_state)
 from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_stack_agent_module.question_agent.graph_engine import \
     create_graph
+from src.mastercard_solution_tech_stack_agent.utilities.helpers import \
+    GraphInvocationError
 
 logger = logging.getLogger(__name__)
 chat_router = APIRouter()
