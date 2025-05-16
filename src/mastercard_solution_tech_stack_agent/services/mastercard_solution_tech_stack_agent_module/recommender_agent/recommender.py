@@ -1,4 +1,3 @@
-from langchain_chroma import Chroma
 from langchain_core.prompts import PromptTemplate
 from langchain_core.documents import Document
 from typing import TypedDict, List
@@ -7,7 +6,7 @@ from .prompts import RECOMMENDER_PROMPT, REQUIREMENTS_PROMPT
 from langgraph.graph import START, StateGraph
 from langchain_core.output_parsers import JsonOutputParser
 from services.model import agent_model as llm
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 vector_store = get_vectorstore()
 
@@ -22,7 +21,6 @@ class State(TypedDict):
     answer: str
 
 from pydantic import BaseModel
-from typing import Dict
 
 
 class Recommendation(BaseModel):
