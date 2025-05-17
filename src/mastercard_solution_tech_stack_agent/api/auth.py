@@ -107,6 +107,8 @@ async def health_check():
 
 @router.get("/google/login")
 async def google_login(request: Request):
+    request.session["test"] = "123"  # Save dummy data
+    system_logger.info(f"Session set: {request.session}")
     redirect_uri = env_config.google_redirect_uri
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
@@ -114,6 +116,13 @@ async def google_login(request: Request):
 @router.get("/google/callback")
 async def google_callback(request: Request, db: Session = Depends(get_db)):
     try:
+        if not request.session or "state" not in request.session:
+            system_logger.warning(f"Missing session or state in session: {dict(request.session)}")
+            raise HTTPException(status_code=400, detail="Session not initialized")
+            
+        # Add debug logging for session state
+        system_logger.info(f"Debug info: Session contents before token: {dict(request.session)}")
+        
         token = await oauth.google.authorize_access_token(request)
 
         user_info = token.get("userinfo")

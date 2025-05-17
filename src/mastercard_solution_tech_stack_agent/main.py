@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request, status
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
@@ -35,45 +36,6 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 
 
-# === Log directory setup ===
-LOG_DIR = "src/logs"
-os.makedirs(LOG_DIR, exist_ok=True)
-
-# === Log file paths ===
-LOG_FILES = {
-    "info": os.path.join(LOG_DIR, "info.log"),
-    "warning": os.path.join(LOG_DIR, "warning.log"),
-    "error": os.path.join(LOG_DIR, "error.log"),
-}
-
-# === Logging format ===
-log_format = logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s")
-
-# === Set up handlers per log level ===
-info_handler = logging.FileHandler(LOG_FILES["info"])
-info_handler.setLevel(logging.INFO)
-info_handler.setFormatter(log_format)
-
-warning_handler = logging.FileHandler(LOG_FILES["warning"])
-warning_handler.setLevel(logging.WARNING)
-warning_handler.setFormatter(log_format)
-
-error_handler = logging.FileHandler(LOG_FILES["error"])
-error_handler.setLevel(logging.ERROR)
-error_handler.setFormatter(log_format)
-
-# === Attach handlers to root logger ===
-root_logger = logging.getLogger()
-root_logger.setLevel(logging.INFO)
-root_logger.handlers = []  # Remove default handlers
-
-root_logger.addHandler(info_handler)
-root_logger.addHandler(warning_handler)
-root_logger.addHandler(error_handler)
-root_logger.addHandler(logging.StreamHandler())  # Also log to console
-
-# === Module-level logger ===
-logger = logging.getLogger(__name__)
 settings = Settings()
 
 description = f"""
@@ -112,12 +74,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# === Session middleware ===
 app.add_middleware(
     SessionMiddleware,
     secret_key=env_config.secret_key,
-    same_site="lax",       # Required for OAuth redirects
-    https_only=True        # Required for HTTPS (ngrok uses HTTPS)
+    session_cookie="session_cookie",
+    same_site="lax",          # Important for OAuth
+    https_only=True,          # Ensures session only works over HTTPS (e.g., ngrok)
+    max_age=3600              # Optional, session duration in seconds
 )
+
+# === Middleware for trusted hosts ===
+# app.add_middleware(
+#     TrustedHostMiddleware,
+#     allowed_hosts=[
+#         "localhost",
+#         "127.0.0.1",
+#         "*.ngrok-free.app",   # ✅ Matches faithful-foal-genuine.ngrok-free.app
+#         "faithful-foal-genuine.ngrok-free.app"  # ✅ Explicit if needed
+#     ]
+# )
 
 # === Enforce HTTPS in production ===
 if env_config.env != "development":
@@ -155,7 +131,7 @@ async def serve_techstack(request: Request):
 # === Global Exception Logging ===
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    logger.error("Unhandled Exception: %s", exc, exc_info=True)
+    system_logger.error("Unhandled Exception: %s", exc, exc_info=True)
     return JSONResponse(
         status_code=500,
         content={"detail": "An unexpected error occurred. Please try again later."},
@@ -164,7 +140,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
-    logger.warning(f"HTTP Exception: {exc.status_code} - {exc.detail}")
+    system_logger.warning(f"HTTP Exception: {exc.status_code} - {exc.detail}")
     return JSONResponse(
         status_code=exc.status_code,
         content={"detail": exc.detail},
@@ -206,7 +182,7 @@ async def view_logs(log_type: str):
         with open(log_file, "r", encoding="utf-8") as f:
             return f.read() or "Log file is empty."
     except Exception as e:
-        logger.error(f"Error reading log '{log_type}': {e}", exc_info=True)
+        system_logger.error(f"Error reading log '{log_type}': {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Error reading log file.")
 
 
