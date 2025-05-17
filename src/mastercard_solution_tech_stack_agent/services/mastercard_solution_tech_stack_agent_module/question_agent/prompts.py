@@ -10,27 +10,27 @@ from src.mastercard_solution_tech_stack_agent.utilities.helpers import (
 
 # Fetch all prompts
 greeting_prompt = load_prompt(
-    "services/mastercard_solution_tech_stack_agent_module/prompts/greeting.yaml"
+    "src/mastercard_solution_tech_stack_agent/services/mastercard_solution_tech_stack_agent_module/prompts/greeting.yaml"
 )
 
 prompt_description_prompt = load_prompt(
-    "services/mastercard_solution_tech_stack_agent_module/prompts/project_description.yaml"
+    "src/mastercard_solution_tech_stack_agent/services/mastercard_solution_tech_stack_agent_module/prompts/project_description.yaml"
 )
 
 domain_prompt = load_prompt(
-    "services/mastercard_solution_tech_stack_agent_module/prompts/domain.yaml"
+    "src/mastercard_solution_tech_stack_agent/services/mastercard_solution_tech_stack_agent_module/prompts/domain.yaml"
 )
 
 specify_goal_prompt = load_prompt(
-    "services/mastercard_solution_tech_stack_agent_module/prompts/specify_goal.yaml"
+    "src/mastercard_solution_tech_stack_agent/services/mastercard_solution_tech_stack_agent_module/prompts/specify_goal.yaml"
 )
 
 pillar_questions = load_pillar_questions(
-    "services/mastercard_solution_tech_stack_agent_module/data/Sample Pillars and Key Questions-Final copy.csv"
+    "src/mastercard_solution_tech_stack_agent/services/mastercard_solution_tech_stack_agent_module/data/Sample Pillars and Key Questions-Final copy.csv"
 )
 
 pillar_marker_prompt_template = load_prompt(
-    "services/mastercard_solution_tech_stack_agent_module/prompts/pillar_marker.yaml"
+    "src/mastercard_solution_tech_stack_agent/services/mastercard_solution_tech_stack_agent_module/prompts/pillar_marker.yaml"
 )
 
 

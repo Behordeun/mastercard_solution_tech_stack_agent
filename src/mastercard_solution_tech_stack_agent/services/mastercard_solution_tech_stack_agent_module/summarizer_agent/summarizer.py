@@ -1,7 +1,8 @@
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import PromptTemplate
 from pydantic import BaseModel, Field
-from services.model import agent_model as llm
+
+from src.mastercard_solution_tech_stack_agent.services.model import agent_model as llm
 
 summarization_prompt = """
 You are a Summarization Agent tasked with extracting the user's intent from a conversation they had with another agent.

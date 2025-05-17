@@ -13,7 +13,14 @@ from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 
-from src.mastercard_solution_tech_stack_agent.api.route import chat_router
+from src.mastercard_solution_tech_stack_agent.api import (
+    admin,
+    auth,
+    logs_router,
+    route,
+    super_admin,
+    users,
+)
 from src.mastercard_solution_tech_stack_agent.config import settings
 from src.mastercard_solution_tech_stack_agent.config.appconfig import env_config
 from src.mastercard_solution_tech_stack_agent.config.settings import Settings
@@ -109,13 +116,14 @@ if env_config.env != "development":
     app.add_middleware(HTTPSRedirectMiddleware)
 
 # === Mount static assets ===
-# === Mount static assets ===
 app.mount(
     "/static",
-    StaticFiles(directory="static"),
+    StaticFiles(directory="src/mastercard_solution_tech_stack_agent/static"),
     name="static",
 )
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(
+    directory="src/mastercard_solution_tech_stack_agent/templates"
+)
 
 
 # === Serve frontend ===
@@ -194,8 +202,16 @@ async def view_logs(log_type: str):
         raise HTTPException(status_code=500, detail="Error reading log file.")
 
 
-# === Main chat router ===
-app.include_router(chat_router, prefix=settings.API_STR)
+# === Include Routers ===
+app.include_router(admin.router, prefix=f"{settings.API_STR}/admin", tags=["Admin"])
+app.include_router(auth.router, prefix=f"{settings.API_STR}/auth", tags=["Auth"])
+app.include_router(logs_router.router, prefix=f"{settings.API_STR}/logs", tags=["Logs"])
+app.include_router(route.router, prefix=f"{settings.API_STR}/chat", tags=["Chat"])
+app.include_router(
+    super_admin.router, prefix=f"{settings.API_STR}/super-admin", tags=["Super Admin"]
+)
+app.include_router(users.router, prefix=f"{settings.API_STR}/users", tags=["Users"])
+
 
 # === Start server ===
 if __name__ == "__main__":
