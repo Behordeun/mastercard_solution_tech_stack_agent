@@ -581,7 +581,7 @@ async def forgot_password(
 
     # Send OTP via email
     # await send_password_reset_email(normalized_email, user.first_name, otp)
-    system_logger.info(f"Password reset link sent to %s", normalized_email)
+    system_logger.info("Password reset link sent to %s", normalized_email)
 
     return {"message": "Password reset link sent to your email address."}
 
@@ -689,7 +689,7 @@ async def confirm_password_reset(
     #        detail="Failed to send password reset confirmation email.",
     #    ) from email_error
 
-    system_logger.info(f"Password reset successfully for email: %s", payload.email)
+    system_logger.info("Password reset successfully for email: %s", payload.email)
     return {
         "message": "Password successfully reset. You can now log in with your new password."
     }

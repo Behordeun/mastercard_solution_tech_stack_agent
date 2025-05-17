@@ -26,10 +26,7 @@ from src.mastercard_solution_tech_stack_agent.database.pd_db import (
     save_summary,
     save_techstack,
 )
-from src.mastercard_solution_tech_stack_agent.database.user_db import (
-    User,
-    save_user_conversation_history,
-)
+from src.mastercard_solution_tech_stack_agent.database.schemas import User
 from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import (
     system_logger,
 )
@@ -46,8 +43,6 @@ from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_
 )
 from src.mastercard_solution_tech_stack_agent.utilities.auth_utils import (
     get_current_user,
-    get_current_admnin_or_super_admin,
-    get_user_info,
 )
 from src.mastercard_solution_tech_stack_agent.utilities.helpers import (
     GraphInvocationError,
@@ -105,15 +100,28 @@ router = APIRouter(
     responses={
         200: {"description": "Success - Request was successful."},
         201: {"description": "Created - Resource was successfully created."},
-        400: {"description": "Bad Request - Missing or incorrect parameters."},
-        401: {"description": "Unauthorized - Login required."},
-        403: {"description": "Forbidden - Insufficient permissions."},
-        404: {"description": "Not Found - Resource not found."},
-        409: {"description": "Conflict - Data conflict occurred."},
-        422: {"description": "Unprocessable Entity - Validation error."},
-        500: {"description": "Internal Server Error."},
-    }
+        400: {
+            "description": "Bad Request - The request could not be understood or was missing required parameters."
+        },
+        401: {
+            "description": "Unauthorized - Authentication is required and has failed or not yet been provided."
+        },
+        403: {
+            "description": "Forbidden - The request was valid, but you do not have the necessary permissions."
+        },
+        404: {"description": "Not Found - The requested resource could not be found."},
+        409: {
+            "description": "Conflict - The request could not be completed due to a conflict with the current state of the resource."
+        },
+        422: {
+            "description": "Unprocessable Entity - The request was well-formed but could not be followed due to validation errors."
+        },
+        500: {
+            "description": "Internal Server Error - An unexpected server error occurred."
+        },
+    },
 )
+
 router.include_router(logs_router)
 
 

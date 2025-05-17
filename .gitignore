@@ -183,3 +183,4 @@ refactored_graph_engine.py
 refactored_nodes.py
 .idea
 *.sqlite3
+*.pem
