@@ -8,9 +8,13 @@ from src.mastercard_solution_tech_stack_agent.database.pd_db import DatabaseSess
 from src.mastercard_solution_tech_stack_agent.database.schemas import (
     ChatLog,
     ConversationHistory,
+    User,
 )
 from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import (
     system_logger,
+)
+from src.mastercard_solution_tech_stack_agent.utilities.auth_utils import (
+    get_current_user,
 )
 
 # === Log directory setup ===
@@ -44,6 +48,7 @@ def get_chat_logs(
         50, le=100, description="Max number of logs to return (max 100)"
     ),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     system_logger.info("Received request to get chat logs")
     query = db.query(ChatLog)
@@ -63,6 +68,7 @@ def get_chat_logs(
 def get_conversation_history_logs(
     session_id: str,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     system_logger.info("Received request to get conversation history logs")
     if not session_id:

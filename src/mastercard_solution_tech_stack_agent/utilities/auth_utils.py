@@ -1,3 +1,4 @@
+import re
 import secrets
 import string
 from datetime import datetime, timedelta, timezone
@@ -304,3 +305,8 @@ def get_current_super_admin(current_user: dict = Depends(get_current_user)):
             status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized"
         )
     return current_use
+
+
+def is_valid_image_url(url: str) -> bool:
+    """Ensure the URL is HTTPS and points to a valid image extension."""
+    return bool(re.match(r"^https:\/\/.*\.(jpg|jpeg|png|gif|webp)(\?.*)?$", url, re.IGNORECASE))

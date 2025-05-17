@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request, status
+from starlette.middleware.sessions import SessionMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
@@ -109,6 +110,13 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=env_config.secret_key,
+    same_site="lax",       # Required for OAuth redirects
+    https_only=True        # Required for HTTPS (ngrok uses HTTPS)
 )
 
 # === Enforce HTTPS in production ===

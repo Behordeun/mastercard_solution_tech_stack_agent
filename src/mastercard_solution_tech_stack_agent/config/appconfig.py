@@ -21,6 +21,7 @@ class EnvConfig:
         self.database_url = os.getenv("POSTGRES_DB_URL")
         self.user = os.getenv("DB_USER")
         self.password = os.getenv("DB_PASSWORD")
+        self.secret_key = os.getenv("SECRET_KEY")
         self.openai_api_key = os.getenv("OPENAI_API_KEY")
         self.groq_api_key = os.getenv("GROQ_API_KEY")
         self.google_client_id = os.getenv("GOOGLE_CLIENT_ID")

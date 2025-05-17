@@ -853,7 +853,7 @@ async def get_user_profile(
         created_at=current_user.created_at,
         updated_at=current_user.updated_at,
         # Fields from UserProfile
-        profile_picture=user_profile.profile_picture,
+        profile_picture=user_profile.profile_picture_url,
     )
 
     return user_data

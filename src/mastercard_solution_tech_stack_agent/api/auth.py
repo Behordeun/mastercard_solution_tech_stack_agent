@@ -16,7 +16,7 @@ from src.mastercard_solution_tech_stack_agent.api.data_model import (
 )
 from src.mastercard_solution_tech_stack_agent.config.appconfig import env_config
 from src.mastercard_solution_tech_stack_agent.config.db_setup import get_db
-from src.mastercard_solution_tech_stack_agent.database.schemas import User
+from src.mastercard_solution_tech_stack_agent.database.schemas import User, UserProfile
 from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import (
     system_logger,
 )
@@ -115,44 +115,77 @@ async def google_login(request: Request):
 async def google_callback(request: Request, db: Session = Depends(get_db)):
     try:
         token = await oauth.google.authorize_access_token(request)
-        user_info = await oauth.google.parse_id_token(request, token)
+
+        user_info = token.get("userinfo")
+        if not user_info:
+            try:
+                user_info = await oauth.google.parse_id_token(request, token)
+            except Exception:
+                user_info = await oauth.google.userinfo(request, token=token)
+
+        if not user_info:
+            raise HTTPException(status_code=400, detail="User info missing")
 
         email = normalize_input(user_info.get("email"))
         first_name = user_info.get("given_name")
         last_name = user_info.get("family_name")
+        profile_image_url = user_info.get("picture")
 
+        # Lookup user
         user = db.query(User).filter(User.email == email).first()
+
         if not user:
+            # Create new user and profile
             user = User(
                 email=email,
                 first_name=first_name,
                 last_name=last_name,
                 is_verified=True,
                 is_admin=False,
-                created_at=datetime.now(timezone.utc),
+                hashed_password="oauth_login",  # fallback placeholder
             )
             db.add(user)
             db.commit()
+            db.refresh(user)
 
-        access_token = create_access_token(
-            {
-                "sub": email,
-                "name": f"{first_name} {last_name}",
-                "role": "user",
-                "is_verified": True,
-            }
-        )
+            profile = UserProfile(
+                user_id=user.id,
+                profile_picture_url=profile_image_url
+            )
+            db.add(profile)
 
+        else:
+            # If user already exists, update profile picture if missing
+            profile = db.query(UserProfile).filter(UserProfile.user_id == user.id).first()
+            if profile:
+                profile.profile_picture_url = profile_image_url
+            else:
+                # Create missing profile record
+                profile = UserProfile(
+                    user_id=user.id,
+                    profile_picture_url=profile_image_url
+                )
+                db.add(profile)
+
+        db.commit()
+
+        # Create access and refresh tokens
+        access_token = create_access_token({
+            "sub": email,
+            "name": f"{first_name} {last_name}",
+            "role": "user",
+            "is_verified": True,
+        })
         refresh_token = create_refresh_token({"sub": email})
 
-        response = RedirectResponse(url="/docs")  # or a frontend page
+        response = RedirectResponse(url="/docs")  # or your frontend
         response.set_cookie(key="refresh_token", value=refresh_token, httponly=True)
         response.set_cookie(key="access_token", value=access_token, httponly=True)
 
         return response
 
-    except Exception:
-        system_logger.exception("Google login failed")
+    except Exception as e:
+        system_logger.error(e, exc_info=True)
         raise HTTPException(status_code=400, detail="Google login failed")
 
 

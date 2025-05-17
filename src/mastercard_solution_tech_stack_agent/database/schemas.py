@@ -120,7 +120,7 @@ class UserProfile(Base):
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
 
-    profile_picture = Column(String, nullable=True)
+    profile_picture_url = Column(String, nullable=True)
 
     otp = Column(String(6), nullable=True)
     otp_created_at = Column(DateTime(timezone=True), nullable=True)
