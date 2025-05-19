@@ -35,12 +35,16 @@ def session_exists(db, session_id: str) -> bool:
     return db.query(UserSession).filter_by(session_id=session_id).first() is not None
 
 
-# ✅ Conversation Insertion
+# ✅ Conversation Insertion with Validation
 def insert_conversation(db: Session, session_id, ai_message, user_message, user_id):
     """
     Insert a conversation entry into the database with required fields.
     """
     try:
+        # Ensure the session_id exists in user_sessions
+        if not session_exists(db, session_id):
+            raise ValueError(f"Session ID '{session_id}' does not exist in user_sessions.")
+
         new_entry = ConversationHistory(
             session_id=session_id,
             user_id=user_id,
@@ -54,8 +58,12 @@ def insert_conversation(db: Session, session_id, ai_message, user_message, user_
         return new_entry
     except SQLAlchemyError as e:
         db.rollback()
-        system_logger.error("Error inserting conversation: %s", e, exc_info=True)
-        raise "SQLAlchemyError: Failed to insert conversation into the database."
+        system_logger.error("SQLAlchemy error inserting conversation", exc_info=True)
+        raise
+    except Exception as e:
+        db.rollback()
+        system_logger.error(f"Error inserting conversation: {e}")
+        raise
 
 
 def create_session(db: Session, session_id: str, user_id: str) -> None:
@@ -89,19 +97,16 @@ def save_summary(db: Session, session_id, summary):
     Save a conversation summary to the database.
     """
     try:
-
         out = (
             db.query(UserSession)
             .filter(UserSession.session_id == session_id)
             .update({UserSession.conversation_summary: summary})
         )
         db.commit()
-        # db.refresh(new_entry)
         return out
     except SQLAlchemyError as e:
         db.rollback()
-        print(e)
-        system_logger.error("Error inserting conversation: %s", str(e), exc_info=True)
+        system_logger.error("Error saving summary: %s", str(e), exc_info=True)
         raise
 
 
@@ -124,18 +129,16 @@ def save_techstack(db: Session, session_id, recommended_stack):
     Save the recommended tech stack to the database.
     """
     try:
-
         out = (
             db.query(UserSession)
             .filter(UserSession.session_id == session_id)
             .update({UserSession.recommended_stack: recommended_stack})
         )
         db.commit()
-        # db.refresh(new_entry)
         return out
     except SQLAlchemyError as e:
         db.rollback()
-        system_logger.error(f"Error inserting conversation: {e}", exc_info=True)
+        system_logger.error(f"Error saving tech stack: {e}", exc_info=True)
         raise
 
 
