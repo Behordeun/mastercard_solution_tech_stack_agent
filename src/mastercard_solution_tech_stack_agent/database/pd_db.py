@@ -43,7 +43,9 @@ def insert_conversation(db: Session, session_id, ai_message, user_message, user_
     try:
         # Ensure the session_id exists in user_sessions
         if not session_exists(db, session_id):
-            raise ValueError(f"Session ID '{session_id}' does not exist in user_sessions.")
+            raise ValueError(
+                f"Session ID '{session_id}' does not exist in user_sessions."
+            )
 
         new_entry = ConversationHistory(
             session_id=session_id,
@@ -56,7 +58,7 @@ def insert_conversation(db: Session, session_id, ai_message, user_message, user_
         db.commit()
         db.refresh(new_entry)
         return new_entry
-    except SQLAlchemyError as e:
+    except SQLAlchemyError:
         db.rollback()
         system_logger.error("SQLAlchemy error inserting conversation", exc_info=True)
         raise
