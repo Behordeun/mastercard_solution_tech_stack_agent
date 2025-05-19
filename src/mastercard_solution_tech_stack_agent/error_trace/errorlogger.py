@@ -4,9 +4,9 @@ import traceback
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
-from config.appconfig import env_config
+from src.mastercard_solution_tech_stack_agent.config.appconfig import env_config
 
 
 class LogLevel(Enum):
@@ -16,7 +16,9 @@ class LogLevel(Enum):
 
 
 class Logger:
-    def __init__(self, log_dir: str = "src/logs"):
+    def __init__(
+        self, log_dir: str = "src/mastercard_solution_tech_stack_agent/logs"
+    ) -> None:
         self.log_dir = Path(log_dir)
         self.log_files = {
             LogLevel.INFO: self.log_dir / "info.log",
@@ -49,15 +51,13 @@ class Logger:
         self,
         level: LogLevel,
         message: str,
-        error: Optional[Exception] = None,
+        error: Optional[Union[Exception, str]] = None,
         additional_info: Optional[Dict[str, Any]] = None,
         exc_info: bool = False,
     ) -> str:
         """Format the complete log message with all metadata."""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        current_function, parent_function = self._get_caller_info(
-            error.__traceback__ if error else None
-        )
+        current_function, parent_function = self._get_caller_info()
 
         log_msg = [
             "=" * 80,
@@ -69,7 +69,8 @@ class Logger:
             f"MESSAGE: {message}",
         ]
 
-        if error:
+        # Handle Exception logging
+        if isinstance(error, BaseException):
             log_msg.extend(
                 [
                     f"ERROR TYPE: {type(error).__name__}",
@@ -77,21 +78,28 @@ class Logger:
                     "-" * 80,
                 ]
             )
-
             if exc_info:
                 try:
                     trace_lines = traceback.format_exception(
                         type(error), error, error.__traceback__
                     )
                     log_msg.extend(["FULL TRACEBACK:", "".join(trace_lines)])
-                except Exception as e:
-                    log_msg.append(f"Failed to format traceback: {str(e)}")
+                except Exception as format_err:
+                    log_msg.append(f"Failed to format traceback: {str(format_err)}")
 
+        elif isinstance(error, str):
+            log_msg.extend(
+                [
+                    f"ERROR MESSAGE: {error}",
+                    "-" * 80,
+                ]
+            )
+
+        # Add default + custom context
         default_context = {
             "ai_engineer": "Muhammad",
             "environment": env_config.env,
         }
-
         if additional_info:
             default_context.update(additional_info)
 
@@ -140,7 +148,7 @@ class Logger:
 
     def error(
         self,
-        error: Exception,
+        error: Union[Exception, str],
         additional_info: Optional[Dict[str, Any]] = None,
         exc_info: bool = False,
     ) -> None:
@@ -148,9 +156,9 @@ class Logger:
         Log an error with optional traceback.
 
         Args:
-            error: Exception to log
+            error: Exception or string to log
             additional_info: Optional context dictionary
-            exc_info: Whether to include full traceback
+            exc_info: Whether to include full traceback if `error` is an Exception
         """
         log_message = self._format_message(
             LogLevel.ERROR, "An error occurred", error, additional_info, exc_info

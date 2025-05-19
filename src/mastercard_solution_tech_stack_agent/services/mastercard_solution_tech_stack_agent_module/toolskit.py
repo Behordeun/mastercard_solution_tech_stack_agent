@@ -10,9 +10,9 @@ from langchain.tools import Tool
 from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings
 
-from config.db_setup import SessionLocal
-from config.settings import Settings
-from services.model import agent_model as model
+from src.mastercard_solution_tech_stack_agent.config.db_setup import SessionLocal
+from src.mastercard_solution_tech_stack_agent.config.settings import Settings
+from src.mastercard_solution_tech_stack_agent.services.model import agent_model as model
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -21,7 +21,9 @@ logger = logging.getLogger(__name__)
 settings = Settings()
 db = SessionLocal()
 
-DOMAIN_KNOWLEDGE_PATH = "services/mastercard_solution_tech_stack_agent_module/data/domain_knowledge.json"
+DOMAIN_KNOWLEDGE_PATH = (
+    "services/mastercard_solution_tech_stack_agent_module/data/domain_knowledge.json"
+)
 VECTORSTORE_PATH = "services/mastercard_solution_tech_stack_agent_module/kb_vectorstore"
 
 # @tool

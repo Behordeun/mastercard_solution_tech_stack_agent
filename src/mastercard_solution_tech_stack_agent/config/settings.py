@@ -1,7 +1,7 @@
 # encoding: utf-8
 from pydantic_settings import BaseSettings
 
-from config.appconfig import env_config
+from src.mastercard_solution_tech_stack_agent.config.appconfig import env_config
 
 
 class Settings(BaseSettings):

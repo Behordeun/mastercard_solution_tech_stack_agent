@@ -1,0 +1,11 @@
+services:
+  ai-news-platform:
+    image: herbehordeun/mastercard_solution_tech_stack_agent:latest
+    container_name: mastercard_solution_tech_stack_agent
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped

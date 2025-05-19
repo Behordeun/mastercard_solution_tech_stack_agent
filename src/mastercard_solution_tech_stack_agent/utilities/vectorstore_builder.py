@@ -1,16 +1,15 @@
+import os
 from typing import List
-from langchain_community.document_loaders import TextLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.vectorstores import FAISS
-from langchain_openai import OpenAIEmbeddings
-
-from typing import List
-from langchain_chroma import Chroma
-from langchain_core.documents import Document
-from langchain_huggingface import HuggingFaceEmbeddings
 
 import pandas as pd
-import os
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_chroma import Chroma
+from langchain_community.document_loaders import TextLoader
+from langchain_community.vectorstores import FAISS
+from langchain_core.documents import Document
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_openai import OpenAIEmbeddings
+
 
 def build_faiss_vectorstore(
     input_paths: List[str],
@@ -38,21 +37,28 @@ def build_faiss_vectorstore(
 
 CURRENT_DIR = os.path.dirname(__file__)
 # the mastercard_solution_tech_stack_agent_module dir
-BASE_DIR = os.path.abspath(os.path.join(CURRENT_DIR, "..", "services", "mastercard_solution_tech_stack_agent_module"))
+BASE_DIR = os.path.abspath(
+    os.path.join(
+        CURRENT_DIR, "..", "services", "mastercard_solution_tech_stack_agent_module"
+    )
+)
 
 print(f"BASE_DIR: {BASE_DIR}")
+
+
 def get_vectorstore():
     vectordb_path = os.path.join(BASE_DIR, "kb_vectorstore", "chroma")
 
     kb_path = os.path.join(vectordb_path, "Tech Stack.csv")
 
     # initalize embedding model
-    embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
+    embeddings = HuggingFaceEmbeddings(
+        model_name="sentence-transformers/all-mpnet-base-v2"
+    )
 
     if os.path.exists(vectordb_path):
         vector_store = Chroma(
-            persist_directory=vectordb_path,
-            embedding_function=embeddings
+            persist_directory=vectordb_path, embedding_function=embeddings
         )
         return vector_store
 
@@ -66,18 +72,21 @@ def get_vectorstore():
                 metadata=dict(
                     zip(
                         ["Entity Type", "Entity Category", "Entity Sub Category"],
-                        [d["Entity Type"], d["Entity Category"], d["Entity Sub Category"]]
+                        [
+                            d["Entity Type"],
+                            d["Entity Category"],
+                            d["Entity Sub Category"],
+                        ],
                     )
-                )
+                ),
             )
             for _, d in kb_data.iterrows()
         ]
 
         vector_store = Chroma.from_documents(
-            documents=kb_result,
-            embedding=embeddings,
-            persist_directory=vectordb_path)
-        
-        return vector_store   
+            documents=kb_result, embedding=embeddings, persist_directory=vectordb_path
+        )
+
+        return vector_store
     else:
         raise FileNotFoundError(f"Vectorstore path {vectordb_path} does not exist.")

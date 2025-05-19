@@ -1,7 +1,8 @@
-from langchain_core.prompts import PromptTemplate
-from services.model import agent_model as llm
-from pydantic import BaseModel, Field
 from langchain_core.output_parsers import JsonOutputParser
+from langchain_core.prompts import PromptTemplate
+from pydantic import BaseModel, Field
+
+from src.mastercard_solution_tech_stack_agent.services.model import agent_model as llm
 
 summarization_prompt = """
 You are a Summarization Agent tasked with extracting the user's intent from a conversation they had with another agent.
@@ -20,12 +21,17 @@ Please return the output in the following JSON format:
 }}
 """
 
+
 class SummarizedOutput(BaseModel):
-    conversation: str = Field(description="Summary of the user's intent and technical requirements")
+    conversation: str = Field(
+        description="Summary of the user's intent and technical requirements"
+    )
+
 
 parser = JsonOutputParser(pydantic_object=SummarizedOutput)
 
 summirization_prompt_template = PromptTemplate.from_template(summarization_prompt)
+
 
 def get_conversation_summary(conversation: str) -> str:
     chain = summirization_prompt_template | llm | parser

@@ -181,3 +181,7 @@ docs/EdoDHISProject.99201026-2f8c-4f1c-b097-b6a369c5254f.serialconsole.txt
 .vscode
 refactored_graph_engine.py
 refactored_nodes.py
+.idea
+*.sqlite3
+*.pem
+src/mastercard_solution_tech_stack_agent/documentation

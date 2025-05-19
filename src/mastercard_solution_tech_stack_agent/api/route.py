@@ -1,45 +1,67 @@
+import os
 import uuid
-import logging
-
 from typing import Annotated, Union
+
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.encoders import jsonable_encoder
-
-from sqlalchemy.exc import SQLAlchemyError
 from fastapi.responses import JSONResponse
 from langchain_core.messages import AIMessage
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from api.data_model import Chat_Message, AIMessageResponse, ConversationSummary
-from api.logs_router import (
+from src.mastercard_solution_tech_stack_agent.api.data_model import (
+    AIMessageResponse,
+    Chat_Message,
+    ConversationSummary,
+    ProjectDescriptionRequest,
+    ProjectDescriptionResponse,
+)
+from src.mastercard_solution_tech_stack_agent.api.logs_router import (
     router as logs_router,
 )
-from config.db_setup import (
-    SessionLocal,
-    
-)
-from database.pd_db import (
+from src.mastercard_solution_tech_stack_agent.config.db_setup import SessionLocal
+from src.mastercard_solution_tech_stack_agent.database.pd_db import (
     get_conversation_history,
-    save_summary,
     get_summary,
-    save_techstack
+    save_summary,
+    save_techstack,
 )
-from error_trace.errorlogger import (
+from src.mastercard_solution_tech_stack_agent.database.schemas import User
+from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import (
     system_logger,
 )
-
-from services.mastercard_solution_tech_stack_agent_module.recommender_agent.recommender import recommend_teck_stack
-from services.mastercard_solution_tech_stack_agent_module.summarizer_agent.summarizer import get_conversation_summary
-
-from services.agent_manger import chat_event, create_chat, get_state
-
-from utilities.helpers import (
+from src.mastercard_solution_tech_stack_agent.services.agent_manger import (
+    chat_event,
+    create_chat,
+    get_state,
+)
+from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_stack_agent_module.recommender_agent.recommender import (
+    recommend_teck_stack,
+)
+from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_stack_agent_module.summarizer_agent.summarizer import (
+    get_conversation_summary,
+)
+from src.mastercard_solution_tech_stack_agent.utilities.auth_utils import (
+    get_current_user,
+)
+from src.mastercard_solution_tech_stack_agent.utilities.helpers import (
     GraphInvocationError,
 )
 
-logger = logging.getLogger(__name__)
-chat_router = APIRouter()
-chat_router.include_router(logs_router)
+# === Log directory setup ===
+LOG_DIR = "src/mastercard_solution_tech_stack_agent/logs"
+os.makedirs(LOG_DIR, exist_ok=True)  # Ensure the logs directory exists
+
+# === Log file paths ===
+LOG_FILES = {
+    "info": os.path.join(LOG_DIR, "info.log"),
+    "warning": os.path.join(LOG_DIR, "warning.log"),
+    "error": os.path.join(LOG_DIR, "error.log"),
+}
+
+
+router = APIRouter()
+router.include_router(logs_router)
 
 GRAPH_CONFIG = {
     "configurable": {
@@ -74,15 +96,79 @@ def _extract_ai_message(response: Union[AIMessage, dict]) -> AIMessage:
     return AIMessage(content="AI could not generate a valid response.")
 
 
+router = APIRouter(
+    responses={
+        200: {"description": "Success - Request was successful."},
+        201: {"description": "Created - Resource was successfully created."},
+        400: {
+            "description": "Bad Request - The request could not be understood or was missing required parameters."
+        },
+        401: {
+            "description": "Unauthorized - Authentication is required and has failed or not yet been provided."
+        },
+        403: {
+            "description": "Forbidden - The request was valid, but you do not have the necessary permissions."
+        },
+        404: {"description": "Not Found - The requested resource could not be found."},
+        409: {
+            "description": "Conflict - The request could not be completed due to a conflict with the current state of the resource."
+        },
+        422: {
+            "description": "Unprocessable Entity - The request was well-formed but could not be followed due to validation errors."
+        },
+        500: {
+            "description": "Internal Server Error - An unexpected server error occurred."
+        },
+    },
+)
+
+router.include_router(logs_router)
+
+
+# === POST /project-description ===
+@router.post("/project-description", response_model=ProjectDescriptionResponse)
+async def project_description(
+    payload: ProjectDescriptionRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+     description="Submit a project description including category, title, and session ID. Custom categories are also supported."
+):
+    """
+    Accepts project title, description, category, and session_id.
+    Handles custom category if 'Others' is selected.
+    """
+    category_display = (
+        payload.custom_category
+        if payload.category == "Others" and payload.custom_category
+        else payload.category
+    )
+
+    system_logger.info(
+        f"📌 Received project: Title='{payload.project_title}', "
+        f"Category='{category_display}', RoomID='{payload.session_id}'"
+    )
+
+    return ProjectDescriptionResponse(
+        message=f"Project description received for category: {category_display}",
+        data=payload,
+    )
+
+
 # === POST /chat-ai ===
-@chat_router.post("/chat-ai", response_model=AIMessageResponse)
-async def chat(message: Chat_Message, db: Annotated[Session, Depends(get_db)]):
+@router.post("/chat-ai", response_model=AIMessageResponse)
+async def chat(
+    message: Chat_Message,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    description="Submit a user message and receive a response from the AI agent powered by LangGraph."
+):
     """
     Handle AI interaction via LangGraph based on user input.
     """
     try:
-        
-        response = await chat_event(db=db, message=message)
+        system_logger.info("")
+        response = await chat_event(
+            db=db, message=message, user_id=str(current_user.id)
+        )
         ai_message = _extract_ai_message(response)
 
         return AIMessageResponse(
@@ -94,22 +180,29 @@ async def chat(message: Chat_Message, db: Annotated[Session, Depends(get_db)]):
         )
 
     except GraphInvocationError as e:
-        logger.error("AI graph invocation failed: %s", e, exc_info=True)
+        # logger.error("AI graph invocation failed: %s", e, exc_info=True)
         system_logger.error(e, exc_info=True)
         return JSONResponse(
             content={"content": "AI service error occurred. Please try again later."},
             status_code=502,
         )
     except Exception as e:
-        logger.exception("Unexpected error in /chat-ai route.")
+        # logger.exception("Unexpected error in /chat-ai route.")
         system_logger.error(e, exc_info=True)
         return JSONResponse(
             content={"content": "Unexpected server error occurred."},
             status_code=500,
         )
-    
-@chat_router.get("/session-history", response_model_exclude_unset=True)
-async def get_chat_history(session_id, db: Annotated[Session, Depends(get_db)]):
+
+
+# === GET /session_historyt ===
+@router.get("/session-history", response_model_exclude_unset=True)
+async def get_chat_history(
+    session_id,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    description="Retrieve previous conversation history for a given session ID."
+):
     """
     Fetch previous chat history for a given room ID.
     """
@@ -119,74 +212,94 @@ async def get_chat_history(session_id, db: Annotated[Session, Depends(get_db)]):
         if not conversation_history:
             await create_chat(db=db, session_id=session_id, user_id=str(uuid.uuid4()))
             conversation_history = get_conversation_history(db, session_id=session_id)
-        
+
         return conversation_history
     except SQLAlchemyError as e:
-        logger.error("Database error retrieving chat history: %s", e, exc_info=True)
+        # logger.error("Database error retrieving chat history: %s", e, exc_info=True)
         system_logger.error(e, exc_info=True)
         raise HTTPException(
             status_code=500,
             detail="Failed to retrieve chat history due to database error.",
         ) from e
-    
-@chat_router.get("/session_state")
-async def get_room_state(session_id):
+
+
+# === GET /session_state ===
+@router.get("/session_state")
+async def get_room_state(
+    session_id,
+    current_user: Annotated[User, Depends(get_current_user)],
+    description="Retrieve the current state (graph memory) of a conversation session."
+):
     """
-        Fetches the state of a particular room to the front end.
+    Fetches the state of a particular room to the front end.
     """
     try:
         session_state = get_state(session_id)
 
         return jsonable_encoder(session_state)[0]
-    
+
     except Exception as e:
-        logger.exception("Unexpected error in /session_state route.")
+        # logger.exception("Unexpected error in /session_state route.")
         system_logger.error(e, exc_info=True)
         return JSONResponse(
             content={"content": "Unexpected server error occurred."},
             status_code=500,
         )
-    
-@chat_router.get("/conversation_summary", response_model=ConversationSummary)
-async def coversation_summary(session_id, db: Annotated[Session, Depends(get_db)]):
+
+
+@router.get("/conversation_summary", response_model=ConversationSummary)
+async def coversation_summary(
+    session_id,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    description="Get the summarized content of the entire conversation if the pillar stage is completed."
+):
     """
-        Fetch the conversation summary
+    Fetch the conversation summary
     """
 
-    try: 
+    try:
         session_state = get_state(session_id)
-        
-        if session_state.get('done_pillar_step', False) == False:
+
+        if session_state.get("done_pillar_step", False) == False:
             return JSONResponse(
                 content={"content": "Pillar questions not completed."},
                 status_code=400,
             )
 
-        summary = get_conversation_summary(str(session_state['messages']))
-        saved_summary = save_summary(db = db, session_id=session_id, summary=summary["conversation"])
+        summary = get_conversation_summary(str(session_state["messages"]))
+        saved_summary = save_summary(
+            db=db, session_id=session_id, summary=summary["conversation"]
+        )
         return ConversationSummary(summary=summary["conversation"])
     except Exception as e:
-        logger.exception("Unexpected error in /recommend_stack route.")
+        # logger.exception("Unexpected error in /recommend_stack route.")
         system_logger.error(e, exc_info=True)
         return JSONResponse(
             content={"content": "Unexpected server error occurred."},
             status_code=500,
         )
-    
-@chat_router.get("/recommeded_stack")
-async def recommend_stack(session_id, db: Annotated[Session, Depends(get_db)]):
+
+
+@router.get("/recommeded_stack")
+async def recommend_stack(
+    session_id,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    description="Retrieve a recommended tech stack based on the completed conversation summary."
+):
     """
-        Fetch the recommend stack
+    Fetch the recommend stack
     """
 
-    try: 
+    try:
         session_state = get_state(session_id)
-        if session_state.get('done_pillar_step', False) == False:
+        if session_state.get("done_pillar_step", False) == False:
             return JSONResponse(
                 content={"content": "Pillar questions not completed."},
                 status_code=400,
             )
-        
+
         summary = get_summary(db, session_id=session_id)
         if summary is None:
             return JSONResponse(
@@ -194,16 +307,16 @@ async def recommend_stack(session_id, db: Annotated[Session, Depends(get_db)]):
                 status_code=404,
             )
 
-        recommend_stack = recommend_teck_stack(session_state['messages'], summary)
-        save_techstack(db = db, session_id=session_id, recommended_stack=recommend_stack)
+        recommend_stack = recommend_teck_stack(session_state["messages"], summary)
+        save_techstack(db=db, session_id=session_id, recommended_stack=recommend_stack)
 
         return JSONResponse(
             content={"content": recommend_stack},
             status_code=200,
         )
-    
+
     except Exception as e:
-        logger.exception("Unexpected error in /recommend_stack route.")
+        # logger.exception("Unexpected error in /recommend_stack route.")
         system_logger.error(e, exc_info=True)
         return JSONResponse(
             content={"content": "Unexpected server error occurred."},

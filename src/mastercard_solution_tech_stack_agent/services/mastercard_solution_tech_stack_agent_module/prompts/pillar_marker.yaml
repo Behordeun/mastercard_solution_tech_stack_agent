@@ -2,21 +2,22 @@ name: domain
 _type: prompt
 input_variables: ['question']
 template: |
-  "Task:"
-  "Based on the previous conversation, determine whether the user has already provided an answer to the following question, or if the answer can be reasonably inferred:"
-  "Question: {question}"
-  "Instructions:"
-  "If the answer is present or can be confidently inferred from the conversation, set answer_ready to true and return the appropriate answer in the answer field."
-  "If the question is irrelevant to the conversation, still set answer_ready to true, but return "irrelevant" as the answer."
-  "If the answer is not available and cannot be inferred, set answer_ready to false and ask the user to answer the question directly."
-  "Follow-up Question Generation (if needed):"
-  "If you're generating a new question, ensure it is:"
-  "Clearly related to the previous conversation."
-  "A natural follow-up that encourages the user to elaborate."
-  "Clear, concise, and structured to prompt a detailed and useful response."
-  "Output Format:"
-  "{{"
-  '"answer_ready": true/false,'
-  '"answer": "<answer>",'
-  '"question": "<question>"'
-  "}}"
+  Based on the previous conversation, check if the user has already provided an answer to the following question or if the answer can be reasonably inferred:
+
+  {question}
+
+  Use the following rules:
+  - If the answer is available or can be inferred, set "answer_ready" to true and provide the inferred "answer".
+  - If the question is irrelevant, set "answer_ready" to true and set "answer" to "irrelevant".
+  - If the answer is not available, set "answer_ready" to false, leave "answer" as an empty string, and return a follow-up "question" that is clear, concise, and encourages a detailed user response.
+
+  Respond strictly in valid JSON format with double-quoted keys.
+
+  Example:
+  {{{{
+    "answer_ready": false,
+    "answer": "",
+    "question": "How do you envision users interacting with your platform? Web app, mobile app, or both?"
+  }}}}
+
+  Do not include any comments, explanations, or extra text. Only return a valid JSON object.
