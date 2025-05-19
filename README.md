@@ -185,7 +185,7 @@ build_faiss_vectorstore("docs/kb.txt", persist_path="src/services/techstack_agen
 ### 6. Run the App (FastAPI)
 
 ```bash
-poetry run uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+poetry run uvicorn src.mastercard_solution_tech_stack_agent.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir src
 ```
 
 **NB:** Do not use `--reload` in production
