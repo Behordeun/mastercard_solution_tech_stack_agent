@@ -2,9 +2,22 @@ name: domain
 _type: prompt
 input_variables: ['question']
 template: |
-  "Based on the previous conversation, Check if the user has provided the answer to this question or we can infer the answer to this question: {question}"
-  "If the answer is ready provide the answer, but if the question is irrelevant answer_ready should be true and the answer should be irrelevant. otherwise ask the user to provide the answer to this question. "
-  "If you are generating a question. The generated question should be relevant to the previous conversation and should be a follow-up question. "
-  "The question should be clear and concise, and should encourage the user to provide a detailed response. "
-  "The output should be in this format: "
-  "{{ answer_ready: true/false, answer: <answer>, question: <question> }}"
+  Based on the previous conversation, check if the user has already provided an answer to the following question or if the answer can be reasonably inferred:
+
+  {question}
+
+  Use the following rules:
+  - If the answer is available or can be inferred, set "answer_ready" to true and provide the inferred "answer".
+  - If the question is irrelevant, set "answer_ready" to true and set "answer" to "irrelevant".
+  - If the answer is not available, set "answer_ready" to false, leave "answer" as an empty string, and return a follow-up "question" that is clear, concise, and encourages a detailed user response.
+
+  Respond strictly in valid JSON format with double-quoted keys.
+
+  Example:
+  {{{{
+    "answer_ready": false,
+    "answer": "",
+    "question": "How do you envision users interacting with your platform? Web app, mobile app, or both?"
+  }}}}
+
+  Do not include any comments, explanations, or extra text. Only return a valid JSON object.
