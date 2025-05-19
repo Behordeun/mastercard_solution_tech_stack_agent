@@ -6,11 +6,27 @@ from datetime import datetime, timedelta, timezone
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
+from passlib.context import CryptContext  # ✅ Add this
 from sqlalchemy.orm import Session
 
 from src.mastercard_solution_tech_stack_agent.config.appconfig import env_config
-from src.mastercard_solution_tech_stack_agent.database.pd_db import get_db
+from src.mastercard_solution_tech_stack_agent.config.db_setup import SessionLocal
 from src.mastercard_solution_tech_stack_agent.database.schemas import User
+from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import (
+    system_logger,
+)
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+# ✅ Initialize password hashing context
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
 
@@ -309,4 +325,6 @@ def get_current_super_admin(current_user: dict = Depends(get_current_user)):
 
 def is_valid_image_url(url: str) -> bool:
     """Ensure the URL is HTTPS and points to a valid image extension."""
-    return bool(re.match(r"^https:\/\/.*\.(jpg|jpeg|png|gif|webp)(\?.*)?$", url, re.IGNORECASE))
+    return bool(
+        re.match(r"^https:\/\/.*\.(jpg|jpeg|png|gif|webp)(\?.*)?$", url, re.IGNORECASE)
+    )

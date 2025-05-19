@@ -31,6 +31,10 @@ def get_db() -> Generator[Session, None, None]:
         db.close()
 
 
+def session_exists(db, session_id: str) -> bool:
+    return db.query(UserSession).filter_by(session_id=session_id).first() is not None
+
+
 # ✅ Conversation Insertion
 def insert_conversation(db: Session, session_id, ai_message, user_message, user_id):
     """

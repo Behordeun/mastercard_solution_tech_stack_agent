@@ -1,5 +1,4 @@
 import os
-from datetime import datetime, timezone
 
 from authlib.integrations.starlette_client import OAuth
 from fastapi import APIRouter, Depends, HTTPException, Response, status
@@ -108,7 +107,7 @@ async def health_check():
 @router.get("/google/login")
 async def google_login(request: Request):
     request.session["test"] = "123"  # Save dummy data
-    system_logger.info(f"Session set: {request.session}")
+    system_logger.info(Exc(f"Session set: {request.session}"))
     redirect_uri = env_config.google_redirect_uri
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
@@ -117,12 +116,16 @@ async def google_login(request: Request):
 async def google_callback(request: Request, db: Session = Depends(get_db)):
     try:
         if not request.session or "state" not in request.session:
-            system_logger.warning(f"Missing session or state in session: {dict(request.session)}")
+            system_logger.warning(
+                f"Missing session or state in session: {dict(request.session)}"
+            )
             raise HTTPException(status_code=400, detail="Session not initialized")
-            
+
         # Add debug logging for session state
-        system_logger.info(f"Debug info: Session contents before token: {dict(request.session)}")
-        
+        system_logger.info(
+            f"Debug info: Session contents before token: {dict(request.session)}"
+        )
+
         token = await oauth.google.authorize_access_token(request)
 
         user_info = token.get("userinfo")
@@ -158,33 +161,35 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
             db.refresh(user)
 
             profile = UserProfile(
-                user_id=user.id,
-                profile_picture_url=profile_image_url
+                user_id=user.id, profile_picture_url=profile_image_url
             )
             db.add(profile)
 
         else:
             # If user already exists, update profile picture if missing
-            profile = db.query(UserProfile).filter(UserProfile.user_id == user.id).first()
+            profile = (
+                db.query(UserProfile).filter(UserProfile.user_id == user.id).first()
+            )
             if profile:
                 profile.profile_picture_url = profile_image_url
             else:
                 # Create missing profile record
                 profile = UserProfile(
-                    user_id=user.id,
-                    profile_picture_url=profile_image_url
+                    user_id=user.id, profile_picture_url=profile_image_url
                 )
                 db.add(profile)
 
         db.commit()
 
         # Create access and refresh tokens
-        access_token = create_access_token({
-            "sub": email,
-            "name": f"{first_name} {last_name}",
-            "role": "user",
-            "is_verified": True,
-        })
+        access_token = create_access_token(
+            {
+                "sub": email,
+                "name": f"{first_name} {last_name}",
+                "role": "user",
+                "is_verified": True,
+            }
+        )
         refresh_token = create_refresh_token({"sub": email})
 
         response = RedirectResponse(url="/docs")  # or your frontend
@@ -203,7 +208,7 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
 async def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
 ):
-    system_logger.info("Login attempt by user: %s", form_data.username)
+    system_logger.info(f"Login attempt by user: {form_data.username}")
 
     normalized_email = normalize_input(form_data.username)
 
@@ -236,7 +241,10 @@ async def login_for_access_token(
     user = db.query(User).filter(User.email == normalized_email).first()
 
     if not user or not verify_password(form_data.password, user.hashed_password):
-        system_logger.error("Invalid login credentials.")
+        system_logger.error(
+            Exception("Invalid login credentials."),
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -244,7 +252,10 @@ async def login_for_access_token(
         )
 
     if not user.is_verified:
-        system_logger.error("Login attempt on unverified account.")
+        system_logger.error(
+            Exception("Login attempt on unverified account."),
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Account is not verified"
         )
@@ -441,7 +452,10 @@ async def confirm_account_deletion(
     )
 
     if not user:
-        system_logger.error("Invalid OTP or email")
+        system_logger.error(
+            Exception("Invalid OTP or email"),
+            exc_info=True,
+        )
         raise HTTPException(status_code=400, detail="Invalid OTP or email")
 
     # Soft delete the user account by marking `is_deleted` as True
@@ -473,7 +487,10 @@ async def recover_account(
     )
 
     if not user:
-        system_logger.error("Invalid OTP or email")
+        system_logger.error(
+            Exception("Invalid OTP or email"),
+            exc_info=True,
+        )
         raise HTTPException(status_code=400, detail="Invalid OTP or email")
 
     # Recover the account

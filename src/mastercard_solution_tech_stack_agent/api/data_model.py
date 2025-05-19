@@ -74,7 +74,7 @@ class UserCreate(UserBase):
     password: str
     first_name: str
     last_name: str
-    profile_picture: Optional[str] = None
+    profile_picture_url: Optional[str] = None
     password: str = Field(
         ..., min_length=8, description="Password must be at least 8 characters long."
     )
@@ -120,7 +120,7 @@ class UserProfileResponse(BaseModel):
     email: EmailStr
     first_name: str
     last_name: str
-    profile_picture: Optional[str] = None
+    profile_picture_url: Optional[str] = None
     is_active: bool
     is_verified: bool
     is_admin: bool
@@ -135,7 +135,7 @@ class UserProfileResponse(BaseModel):
             email=obj.email,
             first_name=obj.first_name,
             last_name=obj.last_name,
-            profile_picture=getattr(obj, "profile_picture", None),
+            profile_picture_url=getattr(obj, "profile_picture_url", None),
             nationality=getattr(obj, "nationality", None),
             is_active=obj.is_active,
             is_verified=obj.is_verified,
@@ -263,7 +263,7 @@ class Chat_Message(BaseModel):
         json_schema_extra = {
             "example": {
                 "id": "18",
-                "roomId": "abc123",
+                "session_id": "abc123",
                 "message": "Hello",
             }
         }

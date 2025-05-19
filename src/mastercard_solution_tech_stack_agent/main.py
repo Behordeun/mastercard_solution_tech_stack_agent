@@ -1,19 +1,17 @@
 # import libraries
-import logging
 import os
 import warnings
 from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request, status
-from starlette.middleware.sessions import SessionMiddleware
-from starlette.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 
 from src.mastercard_solution_tech_stack_agent.api import (
     admin,
@@ -79,9 +77,9 @@ app.add_middleware(
     SessionMiddleware,
     secret_key=env_config.secret_key,
     session_cookie="session_cookie",
-    same_site="lax",          # Important for OAuth
-    https_only=True,          # Ensures session only works over HTTPS (e.g., ngrok)
-    max_age=3600              # Optional, session duration in seconds
+    same_site="lax",  # Important for OAuth
+    https_only=True,  # Ensures session only works over HTTPS (e.g., ngrok)
+    max_age=3600,  # Optional, session duration in seconds
 )
 
 # === Middleware for trusted hosts ===
@@ -131,7 +129,7 @@ async def serve_techstack(request: Request):
 # === Global Exception Logging ===
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    system_logger.error("Unhandled Exception: %s", exc, exc_info=True)
+    system_logger.error(exc, exc_info=True)
     return JSONResponse(
         status_code=500,
         content={"detail": "An unexpected error occurred. Please try again later."},

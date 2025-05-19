@@ -74,7 +74,7 @@ def get_state(session_id):
     return graph_state
 
 
-async def chat_event(db: Any, message: Chat_Message) -> Dict[str, Any]:
+async def chat_event(db: Any, message: Chat_Message, user_id: str) -> Dict[str, Any]:
     logger.info("TSA145: Received input: %s", message.message)
 
     try:
@@ -112,7 +112,7 @@ async def chat_event(db: Any, message: Chat_Message) -> Dict[str, Any]:
         }
 
 
-async def create_chat(db: Any, session_id: str) -> Dict[str, Any]:
+async def create_chat(db: Any, session_id: str, user_id: str) -> Dict[str, Any]:
     logger.info("Create Chat")
 
     try:

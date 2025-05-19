@@ -199,7 +199,7 @@ async def user_registration(user_data: UserCreate, db: Session = Depends(get_db)
             # Create a corresponding user profile in the `user_profiles` table
             new_user_profile = UserProfile(
                 user_id=new_user.id,
-                profile_picture=user_data.profile_picture,
+                profile_picture_url=user_data.profile_picture_url,
                 otp=otp,
                 otp_created_at=datetime.now(timezone.utc),
             )
@@ -227,16 +227,10 @@ async def user_registration(user_data: UserCreate, db: Session = Depends(get_db)
         )
 
     except SQLAlchemyError as e:
-        system_logger.error("Database error during registration: %s", e)
+        system_logger.error(e, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to register user due to a server error.",
-        ) from e
-    except Exception as e:
-        system_logger.error("Unexpected error during registration: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred during registration.",
         ) from e
 
 
@@ -278,7 +272,8 @@ async def user_verification_via_link(
 
     if not user:
         system_logger.error(
-            "Verification attempt for non-existent email: %s", normalized_email
+            Exception("Verification attempt for non-existent email"),
+            additional_info={"email": normalized_email},
         )
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -287,7 +282,10 @@ async def user_verification_via_link(
 
     if not user_profile:
         system_logger.error(
-            "Verification attempt for user without a profile: %s", normalized_email
+            Exception(
+                "Verification attempt for user without a profile: %s", normalized_email
+            ),
+            additional_info={"email": normalized_email},
         )
         raise HTTPException(status_code=404, detail="User profile not found")
 
@@ -298,14 +296,20 @@ async def user_verification_via_link(
 
     # Check if OTP is valid
     if user_profile.otp != otp:
-        system_logger.error()("Invalid OTP attempt for email: %s", normalized_email)
+        system_logger.error(
+            Exception("Invalid OTP attempt for email: %s", normalized_email),
+            additional_info={"email": normalized_email},
+        )
         raise HTTPException(status_code=400, detail="Invalid OTP")
 
     # Check if OTP is expired
     if user_profile.otp_created_at:
         time_since_otp = datetime.now(timezone.utc) - user_profile.otp_created_at
         if time_since_otp.total_seconds() > 86400:  # 24 hours
-            system_logger.error("Expired OTP attempt for email: %s", normalized_email)
+            system_logger.error(
+                Exception("Expired OTP attempt for email: %s", normalized_email),
+                additional_info={"email": normalized_email},
+            )
             raise HTTPException(
                 status_code=400,
                 detail="OTP has expired. Please request a new verification email.",
@@ -325,7 +329,8 @@ async def user_verification_via_link(
     #    system_logger.info(f"User {normalized_email} verified successfully")
     # except Exception as email_error:
     #    system_logger.error(
-    #        f"Failed to send confirmation email to {normalized_email}: {email_error}"
+    #        Exception(f"Failed to send confirmation email to {normalized_email}: {email_error}"),
+    #        additional_info={"email": normalized_email}
     #    )
 
     return {"message": "User verified successfully"}
@@ -364,7 +369,8 @@ async def resend_verification_email(
     user = db.query(User).filter(User.email == normalized_email).first()
     if not user:
         system_logger.error(
-            "Resend verification attempt for non-existent email: %s", email
+            Exception("Resend verification attempt for non-existent email"),
+            additional_info={"email": normalized_email},
         )
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -380,7 +386,8 @@ async def resend_verification_email(
                 seconds=THROTTLE_DURATION_SECONDS
             )
             system_logger.error(
-                "Verification email resend throttled for email= %s", email
+                Exception("Verification email resend throttled for email= %s", email),
+                additional_info={"email": email},
             )
             return JSONResponse(
                 status_code=429,
@@ -402,7 +409,8 @@ async def resend_verification_email(
     #    system_logger.info(f"Verification email resent to email={email}")
     # except Exception as email_error:
     #    system_logger.error(
-    #        f"Failed to send verification email to email={email}: {email_error}"
+    #        Exception(f"Failed to send verification email to email={email}: {email_error}"),
+    #        additional_info={"email": email}
     #    )
     #    raise HTTPException(
     #        status_code=500,
@@ -443,14 +451,20 @@ async def user_login(
     )
 
     if not db_user or not verify_password(password, db_user.hashed_password):
-        system_logger.error("Invalid login credentials.")
+        system_logger.error(
+            Exception("Invalid login credentials."),
+            additional_info={"email": normalized_email},
+        )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="The provided credentials are incorrect",
         )
 
     if db_user.is_deleted:
-        system_logger.error("Login attempt on deleted account: %s", db_user.email)
+        system_logger.error(
+            Exception("Login attempt on deleted account: %s", db_user.email),
+            additional_info={"email": db_user.email},
+        )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="This account has been deleted. Contact support for recovery.",
@@ -541,7 +555,10 @@ async def forgot_password(
 
     if not user:
         system_logger.error(
-            "Password reset requested for non-existent email: %s", normalized_email
+            Exception(
+                "Password reset requested for non-existent email: %s", normalized_email
+            ),
+            additional_info={"email": normalized_email},
         )
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -553,7 +570,10 @@ async def forgot_password(
         # If OTP is still valid (within 24 hours), resend the same OTP
         if time_since_last_request < 86400:  # 24 hours
             system_logger.info(
-                "Resending existing OTP for %s (Still valid).", normalized_email
+                Exception(
+                    "Resending existing OTP for %s (Still valid).", normalized_email
+                ),
+                additional_info={"email": normalized_email},
             )
             otp = user.otp
         else:
@@ -581,7 +601,10 @@ async def forgot_password(
 
     # Send OTP via email
     # await send_password_reset_email(normalized_email, user.first_name, otp)
-    system_logger.info("Password reset link sent to %s", normalized_email)
+    system_logger.info(
+        Exception("Password reset link sent to %s", normalized_email),
+        additional_info={"email": normalized_email},
+    )
 
     return {"message": "Password reset link sent to your email address."}
 
@@ -622,7 +645,10 @@ async def request_password_reset(
 
     # Send password reset OTP via email
     # await send_password_reset_email(current_user.email, current_user.first_name, otp)
-    system_logger.info("Password reset link sent to %s", current_user.email)
+    system_logger.info(
+        Exception("Password reset link sent to %s", current_user.email),
+        additional_info={"email": current_user.email},
+    )
 
     return {"message": "Password reset link sent to your email address."}
 
@@ -656,10 +682,13 @@ async def confirm_password_reset(
 
     if not user:
         system_logger.error(
-            f"""
+            Exception(
+                f"""
             Password reset failed for email {
                 payload.email} due to invalid OTP or email.
             """
+            ),
+            additional_info={"email": payload.email},
         )
         raise HTTPException(status_code=400, detail="Invalid email or OTP")
 
@@ -683,7 +712,10 @@ async def confirm_password_reset(
     # try:
     # await send_password_reset_confirmation_email(user.email, user.first_name)
     # except Exception as email_error:
-    #    system_logger.error(f"Failed to send password reset confirmation email: {email_error}")
+    #    system_logger.error(
+    # Exception(f"Failed to send password reset confirmation email: {email_error}"),
+    # additional_info={"email": user.email}
+    # )
     #    raise HTTPException(
     #        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
     #        detail="Failed to send password reset confirmation email.",
@@ -834,7 +866,10 @@ async def get_user_profile(
     system_logger.info("User profile found: %s", user_profile)
 
     if not user_profile:
-        system_logger.error("User profile not found for user: %s", current_user.email)
+        system_logger.error(
+            Exception("User profile not found for user: %s", current_user.email),
+            additional_info={"user_id": current_user.id},
+        )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User profile not found.",

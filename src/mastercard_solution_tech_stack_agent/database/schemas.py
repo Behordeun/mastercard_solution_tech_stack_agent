@@ -36,12 +36,13 @@ class ConversationHistory(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     session_id = Column(String, ForeignKey("user_sessions.session_id"), nullable=False)
-    user_id = Column(String, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     user_message = Column(String)
     ai_message = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user_session = relationship("UserSession", back_populates="conversation_history")
+    user = relationship("User", back_populates="conversation_histories")
 
 
 class ChatLog(Base):
@@ -49,11 +50,18 @@ class ChatLog(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     session_id = Column(String(100), nullable=False)
+
+    user_id = Column(
+        Integer, ForeignKey("users.id"), nullable=False
+    )  # 👈 ADD THIS LINE
+
     user_message = Column(Text, nullable=True)
     ai_response = Column(Text, nullable=True)
     system_note = Column(Text, nullable=True)
     resource_urls = Column(Text, nullable=True)
     timestamp = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="chat_logs")  # 👈 ADD THIS LINE
 
     def __repr__(self):
         return f"<ChatLog id={self.id} room={self.session_id} time={self.timestamp}>"
@@ -68,6 +76,19 @@ class AgentSession(Base):
     updated_at = Column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+
+class AIMessageResponse(Base):
+    __tablename__ = "ai_message_responses"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    profile_id = Column(Integer, ForeignKey("user_profiles.id", ondelete="CASCADE"))
+    message = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="ai_message_responses")
+    profile = relationship("UserProfile", back_populates="ai_message_responses")
 
 
 # === Users ===
