@@ -1,4 +1,5 @@
 name: project_description
 _type: prompt
 template: |
+  "Using very simple language"
   "Based on the previous conversation, craft a question asking the user to provide a detailed description of their project. "
