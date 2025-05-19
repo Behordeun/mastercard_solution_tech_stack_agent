@@ -1,4 +1,3 @@
-import logging
 from typing import Any, Dict
 
 from langchain_core.messages import HumanMessage
@@ -8,7 +7,10 @@ from psycopg_pool import AsyncConnectionPool
 
 from src.mastercard_solution_tech_stack_agent.api.data_model import Chat_Message
 from src.mastercard_solution_tech_stack_agent.config.settings import env_config
-from src.mastercard_solution_tech_stack_agent.database.pd_db import insert_conversation
+from src.mastercard_solution_tech_stack_agent.database.pd_db import (
+    create_session,
+    insert_conversation,
+)
 from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import (
     system_logger,
 )
@@ -16,46 +18,38 @@ from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_
     create_graph,
 )
 
-logger = logging.getLogger(__name__)
+# PostgreSQL connection string setup
+db_uri = f"postgresql://{env_config.user}:{env_config.password}@{env_config.host}/{env_config.database}?sslmode=disable"
 
 connection_kwargs = {
     "autocommit": True,
     "prepare_threshold": 0,
 }
 
-# === Initialize LangGraph ===
-# DB_URI = "postgresql://postgres:postgres@localhost:5442/postgres?sslmode=disable"
-db_uri = f"postgresql://{env_config.user}:{env_config.password}@{env_config.host}/{env_config.database}?sslmode=disable"
 
-# memory = MemorySaver()
-# graph = create_graph(memory=memory)
-
-
+# === SYNC LangGraph invocation ===
 def invoke(user_message, config):
     with PostgresSaver.from_conn_string(db_uri) as checkpointer:
         checkpointer.setup()
-
         graph = create_graph(checkpointer=checkpointer)
-
         response = graph.invoke({"messages": [user_message]}, config)
-
     return response
 
 
+# === ASYNC LangGraph invocation ===
 async def ainvoke(user_message, config):
-    with AsyncConnectionPool(
+    async with AsyncConnectionPool(
         conninfo=db_uri,
         max_size=20,
         kwargs=connection_kwargs,
     ) as pool:
         checkpointer = AsyncPostgresSaver(pool)
         graph = create_graph(checkpointer=checkpointer)
-
         response = graph.invoke({"messages": [user_message]}, config)
-
     return response
 
 
+# === LangGraph state retrieval ===
 def get_state(session_id):
     config = {
         "configurable": {
@@ -66,16 +60,14 @@ def get_state(session_id):
 
     with PostgresSaver.from_conn_string(db_uri) as checkpointer:
         checkpointer.setup()
-
         graph = create_graph(checkpointer=checkpointer)
-
         graph_state = graph.get_state(config)
-
     return graph_state
 
 
+# === Chat Event Handler ===
 async def chat_event(db: Any, message: Chat_Message, user_id: str) -> Dict[str, Any]:
-    logger.info("TSA145: Received input: %s", message.message)
+    system_logger.info(f"TSA145: Received input: {message.message}")
 
     try:
         if not message.message.strip():
@@ -89,31 +81,35 @@ async def chat_event(db: Any, message: Chat_Message, user_id: str) -> Dict[str, 
         }
 
         user_message = HumanMessage(message.message)
-
         response = invoke(user_message, config)
 
+        ai_response = (
+            response["messages"][-1].content
+            if response.get("messages")
+            else "No AI response"
+        )
+
         insert_conversation(
-            db,
-            ai_message=response["messages"][-1].content,
+            db=db,
             session_id=message.session_id,
             user_message=message.message,
+            ai_message=ai_response,
             user_id=user_id,
         )
 
         return response
 
     except Exception as e:
-        print("Except: %s", e)
-        system_logger.error(e, exc_info=True)
-
+        system_logger.error("chat_event failed", error=e, exc_info=True)
         return {
             "message": "AI processing error. Please try again later.",
             "sender": "AI",
         }
 
 
+# === Create Initial Chat Session ===
 async def create_chat(db: Any, session_id: str, user_id: str) -> Dict[str, Any]:
-    logger.info("Create Chat")
+    system_logger.info("TSA145: Create Chat started")
 
     try:
         config = {
@@ -124,25 +120,30 @@ async def create_chat(db: Any, session_id: str, user_id: str) -> Dict[str, Any]:
         }
 
         user_message = HumanMessage("")
-
         response = invoke(user_message, config)
 
+        ai_response = (
+            response["messages"][-1].content if response.get("messages") else "Welcome."
+        )
+
         create_session(
-            db,
+            db=db,
             session_id=session_id,
             user_id=user_id,
         )
 
         insert_conversation(
-            db,
-            ai_message=response["messages"][-1].content,
+            db=db,
             session_id=session_id,
             user_message="",
+            ai_message=ai_response,
             user_id=user_id,
         )
 
+        return response
+
     except Exception as e:
-        system_logger.error(e, exc_info=True)
+        system_logger.error("create_chat failed", error=e, exc_info=True)
         return {
             "message": "AI processing error. Please try again later.",
             "sender": "AI",
