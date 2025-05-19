@@ -130,6 +130,7 @@ router.include_router(logs_router)
 async def project_description(
     payload: ProjectDescriptionRequest,
     current_user: Annotated[User, Depends(get_current_user)],
+     description="Submit a project description including category, title, and session ID. Custom categories are also supported."
 ):
     """
     Accepts project title, description, category, and session_id.
@@ -158,6 +159,7 @@ async def chat(
     message: Chat_Message,
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
+    description="Submit a user message and receive a response from the AI agent powered by LangGraph."
 ):
     """
     Handle AI interaction via LangGraph based on user input.
@@ -199,6 +201,7 @@ async def get_chat_history(
     session_id,
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
+    description="Retrieve previous conversation history for a given session ID."
 ):
     """
     Fetch previous chat history for a given room ID.
@@ -225,6 +228,7 @@ async def get_chat_history(
 async def get_room_state(
     session_id,
     current_user: Annotated[User, Depends(get_current_user)],
+    description="Retrieve the current state (graph memory) of a conversation session."
 ):
     """
     Fetches the state of a particular room to the front end.
@@ -248,6 +252,8 @@ async def coversation_summary(
     session_id,
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
+    description="Get the summarized content of the entire conversation if the pillar stage is completed."
+)
 ):
     """
     Fetch the conversation summary
@@ -281,6 +287,7 @@ async def recommend_stack(
     session_id,
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
+    description="Retrieve a recommended tech stack based on the completed conversation summary."
 ):
     """
     Fetch the recommend stack
