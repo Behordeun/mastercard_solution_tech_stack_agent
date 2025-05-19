@@ -100,7 +100,9 @@ async def chat_event(db: Any, message: Chat_Message, user_id: str) -> Dict[str, 
         return response
 
     except Exception as e:
-        system_logger.error("chat_event failed", error=e, exc_info=True)
+        system_logger.error(
+            e, additional_info={"context": "chat_event failed"}, exc_info=True
+        )
         return {
             "message": "AI processing error. Please try again later.",
             "sender": "AI",
@@ -143,7 +145,9 @@ async def create_chat(db: Any, session_id: str, user_id: str) -> Dict[str, Any]:
         return response
 
     except Exception as e:
-        system_logger.error("create_chat failed", error=e, exc_info=True)
+        system_logger.error(
+            e, additional_info={"Context": "create_chat failed"}, exc_info=True
+        )
         return {
             "message": "AI processing error. Please try again later.",
             "sender": "AI",
