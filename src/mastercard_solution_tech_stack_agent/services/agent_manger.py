@@ -8,7 +8,6 @@ from psycopg_pool import AsyncConnectionPool
 from src.mastercard_solution_tech_stack_agent.api.data_model import Chat_Message
 from src.mastercard_solution_tech_stack_agent.config.settings import env_config
 from src.mastercard_solution_tech_stack_agent.database.pd_db import (
-    session_exists,
     create_session,
     insert_conversation,
 )
