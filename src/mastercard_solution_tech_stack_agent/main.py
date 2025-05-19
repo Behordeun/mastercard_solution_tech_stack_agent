@@ -41,6 +41,13 @@ description = f"""
 """
 
 
+LOG_FILES = {
+    "info": "src/mastercard_solution_tech_stack_agent/logs/info.log",
+    "warning": "src/mastercard_solution_tech_stack_agent/logs/warning.log",
+    "error": "src/mastercard_solution_tech_stack_agent/logs/error.log",
+}
+
+
 # === Lifespan context ===
 @asynccontextmanager
 async def lifespan(app: FastAPI):
