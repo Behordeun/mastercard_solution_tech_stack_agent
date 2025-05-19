@@ -253,7 +253,6 @@ async def coversation_summary(
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
     description="Get the summarized content of the entire conversation if the pillar stage is completed."
-)
 ):
     """
     Fetch the conversation summary
