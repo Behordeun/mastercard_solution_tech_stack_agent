@@ -125,6 +125,33 @@ router = APIRouter(
 router.include_router(logs_router)
 
 
+# === POST /project-description ===
+@router.post("/project-description", response_model=ProjectDescriptionResponse)
+async def project_description(
+    payload: ProjectDescriptionRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    """
+    Accepts project title, description, category, and session_id.
+    Handles custom category if 'Others' is selected.
+    """
+    category_display = (
+        payload.custom_category
+        if payload.category == "Others" and payload.custom_category
+        else payload.category
+    )
+
+    system_logger.info(
+        f"📌 Received project: Title='{payload.project_title}', "
+        f"Category='{category_display}', RoomID='{payload.session_id}'"
+    )
+
+    return ProjectDescriptionResponse(
+        message=f"Project description received for category: {category_display}",
+        data=payload,
+    )
+
+
 # === POST /chat-ai ===
 @router.post("/chat-ai", response_model=AIMessageResponse)
 async def chat(
@@ -166,6 +193,7 @@ async def chat(
         )
 
 
+# === GET /session_historyt ===
 @router.get("/session-history", response_model_exclude_unset=True)
 async def get_chat_history(
     session_id,
@@ -192,6 +220,7 @@ async def get_chat_history(
         ) from e
 
 
+# === GET /session_state ===
 @router.get("/session_state")
 async def get_room_state(
     session_id,
@@ -212,32 +241,6 @@ async def get_room_state(
             content={"content": "Unexpected server error occurred."},
             status_code=500,
         )
-
-
-@router.post("/project-description", response_model=ProjectDescriptionResponse)
-async def project_description(
-    payload: ProjectDescriptionRequest,
-    current_user: Annotated[User, Depends(get_current_user)],
-):
-    """
-    Accepts project title, description, category, and session_id.
-    Handles custom category if 'Others' is selected.
-    """
-    category_display = (
-        payload.custom_category
-        if payload.category == "Others" and payload.custom_category
-        else payload.category
-    )
-
-    system_logger.info(
-        f"📌 Received project: Title='{payload.project_title}', "
-        f"Category='{category_display}', RoomID='{payload.session_id}'"
-    )
-
-    return ProjectDescriptionResponse(
-        message=f"Project description received for category: {category_display}",
-        data=payload,
-    )
 
 
 @router.get("/conversation_summary", response_model=ConversationSummary)
