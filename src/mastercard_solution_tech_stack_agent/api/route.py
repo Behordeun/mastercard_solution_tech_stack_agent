@@ -137,7 +137,9 @@ async def chat(
     """
     try:
         system_logger.info("")
-        response = await chat_event(db=db, message=message, user_id=str(current_user.id))
+        response = await chat_event(
+            db=db, message=message, user_id=str(current_user.id)
+        )
         ai_message = _extract_ai_message(response)
 
         return AIMessageResponse(
