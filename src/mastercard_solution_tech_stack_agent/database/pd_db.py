@@ -17,13 +17,11 @@ from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import (
 )
 
 logger = logging.getLogger(__name__)
-
 DatabaseSession = SessionLocal
 
 
 @contextmanager
 def get_db() -> Generator[Session, None, None]:
-    """Context manager for SQLAlchemy session."""
     db = DatabaseSession()
     try:
         yield db
@@ -35,17 +33,17 @@ def session_exists(db, session_id: str) -> bool:
     return db.query(UserSession).filter_by(session_id=session_id).first() is not None
 
 
-# ✅ Conversation Insertion with Validation
 def insert_conversation(db: Session, session_id, ai_message, user_message, user_id):
     """
     Insert a conversation entry into the database with required fields.
+    Automatically creates the session if it does not exist.
     """
     try:
-        # Ensure the session_id exists in user_sessions
         if not session_exists(db, session_id):
-            raise ValueError(
-                f"Session ID '{session_id}' does not exist in user_sessions."
+            system_logger.info(
+                f"Auto-creating session for session_id: {session_id}, user_id: {user_id}"
             )
+            create_session(db, session_id=session_id, user_id=user_id)
 
         new_entry = ConversationHistory(
             session_id=session_id,
@@ -58,6 +56,7 @@ def insert_conversation(db: Session, session_id, ai_message, user_message, user_
         db.commit()
         db.refresh(new_entry)
         return new_entry
+
     except SQLAlchemyError:
         db.rollback()
         system_logger.error("SQLAlchemy error inserting conversation", exc_info=True)
@@ -69,9 +68,6 @@ def insert_conversation(db: Session, session_id, ai_message, user_message, user_
 
 
 def create_session(db: Session, session_id: str, user_id: str) -> None:
-    """
-    Create a new session in the database.
-    """
     try:
         new_session = UserSession(session_id=session_id, user_id=user_id)
         db.add(new_session)
@@ -84,9 +80,6 @@ def create_session(db: Session, session_id: str, user_id: str) -> None:
 
 
 def get_user_session(db: Session, session_id: str) -> Optional[UserSession]:
-    """
-    Retrieve a user session from the database.
-    """
     try:
         return db.query(UserSession).filter_by(session_id=session_id).first()
     except SQLAlchemyError as e:
@@ -97,8 +90,12 @@ def get_user_session(db: Session, session_id: str) -> Optional[UserSession]:
 def save_summary(db: Session, session_id, summary):
     """
     Save a conversation summary to the database.
+    Only allowed if the session already exists.
     """
     try:
+        if not session_exists(db, session_id):
+            raise ValueError(f"Session ID '{session_id}' does not exist.")
+
         out = (
             db.query(UserSession)
             .filter(UserSession.session_id == session_id)
@@ -113,9 +110,6 @@ def save_summary(db: Session, session_id, summary):
 
 
 def get_summary(db: Session, session_id: str) -> Optional[str]:
-    """
-    Retrieve a conversation summary from the database.
-    """
     try:
         session = db.query(UserSession).filter_by(session_id=session_id).first()
         if session:
@@ -129,8 +123,12 @@ def get_summary(db: Session, session_id: str) -> Optional[str]:
 def save_techstack(db: Session, session_id, recommended_stack):
     """
     Save the recommended tech stack to the database.
+    Only allowed if the session already exists.
     """
     try:
+        if not session_exists(db, session_id):
+            raise ValueError(f"Session ID '{session_id}' does not exist.")
+
         out = (
             db.query(UserSession)
             .filter(UserSession.session_id == session_id)
@@ -144,7 +142,6 @@ def save_techstack(db: Session, session_id, recommended_stack):
         raise
 
 
-# ✅ Chat History Retrieval
 def get_conversation_history(db: Session, session_id: str, k: int = 48) -> str:
     try:
         messages = (
@@ -163,25 +160,12 @@ def get_conversation_history(db: Session, session_id: str, k: int = 48) -> str:
                 seen_messages.add(combined)
                 unique_messages.append(msg)
 
-        # Format for agent state
         conversation_parts = []
         for msg in unique_messages:
             if msg.user_message:
-                user_text = msg.user_message
-                conversation_parts.append(
-                    {
-                        "role": "user",
-                        "content": user_text,
-                    }
-                )
+                conversation_parts.append({"role": "user", "content": msg.user_message})
             if msg.ai_message:
-                ai_text = msg.ai_message
-                conversation_parts.append(
-                    {
-                        "role": "ai",
-                        "content": ai_text,
-                    }
-                )
+                conversation_parts.append({"role": "ai", "content": msg.ai_message})
 
         return conversation_parts
 
@@ -190,7 +174,6 @@ def get_conversation_history(db: Session, session_id: str, k: int = 48) -> str:
         raise
 
 
-# ✅ Agent Session Retrieval
 def get_agent_session(db: Session, session_id: str) -> Optional[AgentSession]:
     try:
         return db.query(AgentSession).filter_by(session_id=session_id).first()
@@ -199,7 +182,6 @@ def get_agent_session(db: Session, session_id: str) -> Optional[AgentSession]:
         raise
 
 
-# ✅ Agent Session Save/Update
 def save_agent_session(
     db: Session, session_id: str, context: dict, questions: list
 ) -> None:
