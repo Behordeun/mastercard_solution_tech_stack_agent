@@ -1265,15 +1265,31 @@
         "summary": "Project Description",
         "description": "Accepts project title, description, category, and session_id.\nHandles custom category if 'Others' is selected.",
         "operationId": "project_description_api_v1_chat_project_description_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "description",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": "Submit a project description including category, title, and session ID. Custom categories are also supported.",
+              "title": "Description"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ProjectDescriptionRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -1310,12 +1326,7 @@
           "500": {
             "description": "Internal Server Error - An unexpected server error occurred."
           }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ]
+        }
       }
     },
     "/api/v1/chat/chat-ai": {
@@ -1326,15 +1337,31 @@
         "summary": "Chat",
         "description": "Handle AI interaction via LangGraph based on user input.",
         "operationId": "chat_api_v1_chat_chat_ai_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "description",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": "Submit a user message and receive a response from the AI agent powered by LangGraph.",
+              "title": "Description"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/Chat_Message"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -1371,12 +1398,7 @@
           "500": {
             "description": "Internal Server Error - An unexpected server error occurred."
           }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ]
+        }
       }
     },
     "/api/v1/chat/session-history": {
@@ -1399,6 +1421,15 @@
             "required": true,
             "schema": {
               "title": "Session Id"
+            }
+          },
+          {
+            "name": "description",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": "Retrieve previous conversation history for a given session ID.",
+              "title": "Description"
             }
           }
         ],
@@ -1461,6 +1492,15 @@
             "schema": {
               "title": "Session Id"
             }
+          },
+          {
+            "name": "description",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": "Retrieve the current state (graph memory) of a conversation session.",
+              "title": "Description"
+            }
           }
         ],
         "responses": {
@@ -1522,6 +1562,15 @@
             "schema": {
               "title": "Session Id"
             }
+          },
+          {
+            "name": "description",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": "Get the summarized content of the entire conversation if the pillar stage is completed.",
+              "title": "Description"
+            }
           }
         ],
         "responses": {
@@ -1582,6 +1631,15 @@
             "required": true,
             "schema": {
               "title": "Session Id"
+            }
+          },
+          {
+            "name": "description",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": "Retrieve a recommended tech stack based on the completed conversation summary.",
+              "title": "Description"
             }
           }
         ],
