@@ -22,13 +22,15 @@ class UserSession(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     session_id = Column(String, nullable=False, unique=True)
-    user_id = Column(String)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     conversation_summary = Column(String)
     recommended_stack = Column(JSON)
 
     conversation_history = relationship(
-        "ConversationHistory", back_populates="user_session"
+        "ConversationHistory", back_populates="user_sessions"
     )
+    user = relationship("User", back_populates="user_sessions")
+    
 
 
 class ConversationHistory(Base):
@@ -41,7 +43,7 @@ class ConversationHistory(Base):
     ai_message = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    user_session = relationship("UserSession", back_populates="conversation_history")
+    user_sessions = relationship("UserSession", back_populates="conversation_history")
     user = relationship("User", back_populates="conversation_histories")
 
 
@@ -129,6 +131,9 @@ class User(Base):
     )
     ai_message_responses = relationship(
         "AIMessageResponse", back_populates="user", cascade="all, delete-orphan"
+    )
+    user_sessions = relationship(
+        "UserSession", back_populates="user", cascade="all, delete-orphan"
     )
 
 

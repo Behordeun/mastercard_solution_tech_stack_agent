@@ -1,6 +1,7 @@
 # import libraries
 import os
 import warnings
+import traceback
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -73,7 +74,7 @@ app = FastAPI(
 # === CORS configuration ===
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*", "http://localhost:8000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -118,8 +119,16 @@ templates = Jinja2Templates(
 # === Serve frontend ===
 @app.get("/", response_class=HTMLResponse)
 async def serve_ui(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse("login.html", {"request": request})
 
+# === Serve Signup ===
+@app.get("/signup", response_class=HTMLResponse)
+async def serve_signup(request: Request):
+    return templates.TemplateResponse("signup.html", {"request": request})
+# === Serve Chat UI ===
+@app.get("/chat", response_class=HTMLResponse)
+async def serve_chat(request: Request):
+    return templates.TemplateResponse("chat.html", {"request": request})
 
 # === Serve Summarization ===
 @app.get("/summary", response_class=HTMLResponse)
@@ -145,11 +154,29 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
-    system_logger.warning(f"HTTP Exception: {exc.status_code} - {exc.detail}")
+    # Log full traceback for internal diagnostics
+    error_trace = traceback.format_exc()
+    system_logger.warning(
+        f"HTTP Exception: {exc.status_code} - {exc.detail}\n"
+        f"Path: {request.url.path}\n"
+        f"Method: {request.method}\n"
+        f"Traceback:\n{error_trace}"
+    )
+ 
+    # Return detailed error response (customize based on environment)
     return JSONResponse(
         status_code=exc.status_code,
-        content={"detail": exc.detail},
+        content={
+            "error": {
+                "type": exc.__class__.__name__,
+                "message": str(exc.detail),
+                "status_code": exc.status_code,
+                "path": request.url.path,
+                "method": request.method,
+            }
+        },
     )
+ 
 
 
 # === API Info Endpoint ===

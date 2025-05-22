@@ -1,6 +1,6 @@
 import os
 import uuid
-from typing import Annotated, Union
+from typing import Annotated, Union, List
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.encoders import jsonable_encoder
@@ -15,16 +15,18 @@ from src.mastercard_solution_tech_stack_agent.api.data_model import (
     ConversationSummary,
     ProjectDescriptionRequest,
     ProjectDescriptionResponse,
+    UserSession
 )
 from src.mastercard_solution_tech_stack_agent.api.logs_router import (
     router as logs_router,
 )
 from src.mastercard_solution_tech_stack_agent.config.db_setup import SessionLocal
 from src.mastercard_solution_tech_stack_agent.database.pd_db import (
-    get_conversation_history,
+    get_conversation_history,   
     get_summary,
     save_summary,
     save_techstack,
+    get_user_sessions   
 )
 from src.mastercard_solution_tech_stack_agent.database.schemas import User
 from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import (
@@ -194,9 +196,57 @@ async def chat(
             status_code=500,
         )
 
+@router.post("/sessions", response_model=UserSession, status_code=201)
+async def create_session(
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    description="Create a new user session.",
+):
+    """
+    Create a new session for a user.
+    """
+    user_id = current_user.id
+    session_id = str(uuid.uuid4())  # Generate a new session ID
 
-# === GET /session_historyt ===
-@router.get("/session-history", response_model_exclude_unset=True)
+    try:
+        # Create a new session in the database
+        new_session = await create_chat(db=db, session_id=session_id, user_id=str(user_id))
+        
+        # Return the new session details
+        return UserSession(
+            session_id=session_id,
+            user_id=str(user_id)
+        )
+    except SQLAlchemyError as e:
+        system_logger.error(f"Database error creating new session for user_id {user_id}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to create a new session due to a database error.",
+        ) from e
+
+# === GET /user_sessions ===
+@router.get("/user_sessions", response_model=List[UserSession])
+async def get_all_user_sessions(
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    description="Retrieve all sessions created by a specific user."
+):
+    """
+    Fetch all sessions for a given user ID.
+    """
+    user_id = current_user.id
+    try:
+        user_sessions = get_user_sessions(db, user_id=user_id)
+        return user_sessions
+    except SQLAlchemyError as e:
+        system_logger.error(f"Database error retrieving user sessions for user_id {user_id}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to retrieve user sessions due to a database error.",
+        ) from e
+
+# === GET /session_history ===
+@router.get("/chat-history", response_model_exclude_unset=True)
 async def get_chat_history(
     session_id,
     db: Annotated[Session, Depends(get_db)],
@@ -208,10 +258,6 @@ async def get_chat_history(
     """
     try:
         conversation_history = get_conversation_history(db, session_id=session_id)
-
-        if not conversation_history:
-            await create_chat(db=db, session_id=session_id, user_id=str(uuid.uuid4()))
-            conversation_history = get_conversation_history(db, session_id=session_id)
 
         return conversation_history
     except SQLAlchemyError as e:

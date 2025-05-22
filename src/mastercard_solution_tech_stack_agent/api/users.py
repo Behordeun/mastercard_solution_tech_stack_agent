@@ -484,7 +484,7 @@ async def user_login(
             "user_name": db_user.first_name,
             "user_id": db_user.id,
             "is_verified": db_user.is_verified,
-            "profile_picture": user_profile.profile_picture,
+            "profile_picture_url": user_profile.profile_picture_url,
             "role": role,
         }
     )
@@ -503,7 +503,7 @@ async def user_login(
                 "role": role,
                 "email": db_user.email,
                 "is_verified": db_user.is_verified,
-                "profile_picture": user_profile.profile_picture,
+                "profile_picture_url": user_profile.profile_picture_url,
             },
         }
     )
@@ -888,7 +888,7 @@ async def get_user_profile(
         created_at=current_user.created_at,
         updated_at=current_user.updated_at,
         # Fields from UserProfile
-        profile_picture=user_profile.profile_picture_url,
+        profile_picture_url=user_profile.profile_picture_url,
     )
 
     return user_data

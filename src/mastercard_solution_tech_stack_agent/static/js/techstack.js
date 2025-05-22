@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
     const session = urlParams.get('sessionid');
-    let apiUrl = 'http://localhost:8000/api/v1/recommeded_stack';
+    let apiUrl = 'http://localhost:8000/api/v1/chat/recommeded_stack';
     
     if (session) {
         apiUrl += `?session_id=${session}`;

@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
     const session = urlParams.get('sessionid');
-    let apiUrl = 'http://localhost:8000/api/v1/conversation_summary';
+    let apiUrl = 'http://localhost:8000/api/v1/chat/conversation_summary';
 
     console.log("session id", session)
     if (session) {

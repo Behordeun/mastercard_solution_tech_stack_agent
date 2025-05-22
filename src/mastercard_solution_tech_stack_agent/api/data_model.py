@@ -20,6 +20,24 @@ LOG_FILES = {
 
 T = TypeVar("T")
 
+class UserSession(BaseModel):
+    session_id: str
+    user_id: int
+    conversation_summary: Optional[str] = None
+    recommended_stack: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+        json_schema_extra = {
+            "example": {
+                "session_id": "session123",
+                "user_id": "user456",
+                "conversation_summary": "A summary of the conversation.",
+                "recommended_stack": "Python, FastAPI, React",
+                "created_at": "2024-01-01T12:00:00",
+            }
+        }
 
 class PaginationMetadata(BaseModel):
     total: int

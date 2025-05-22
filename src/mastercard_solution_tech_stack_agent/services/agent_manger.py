@@ -128,7 +128,7 @@ async def create_chat(db: Any, session_id: str, user_id: str) -> Dict[str, Any]:
             response["messages"][-1].content if response.get("messages") else "Welcome."
         )
 
-        create_session(
+        session = create_session(
             db=db,
             session_id=session_id,
             user_id=user_id,
@@ -142,7 +142,7 @@ async def create_chat(db: Any, session_id: str, user_id: str) -> Dict[str, Any]:
             user_id=user_id,
         )
 
-        return response
+        return session
 
     except Exception as e:
         system_logger.error(

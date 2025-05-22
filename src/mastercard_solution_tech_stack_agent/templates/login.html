@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Login | MyApp</title>
+  <link rel="stylesheet" href="/static/css/login.css">  
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="login-container">
+    <h2>Welcome Back</h2>
+    <p>Please login to continue</p>
+    <form id="loginForm">
+      <input type="text" id="email" placeholder="Email" required>
+      <input type="password" id="password" placeholder="Password" required>
+      <button type="submit">Login</button>
+      <p id="error-msg"></p>
+    </form>
+
+    <p class="signup-redirect">Not Signed Up? <a href="/signup">Signup</a></p>
+
+  </div>  
+  <script src="/static/js/login.js"></script>
+
+</body>
+</html>
