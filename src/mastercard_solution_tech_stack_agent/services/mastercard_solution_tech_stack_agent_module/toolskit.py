@@ -1,6 +1,5 @@
 # libraries
 import json
-import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List
@@ -12,11 +11,10 @@ from langchain_openai import OpenAIEmbeddings
 
 from src.mastercard_solution_tech_stack_agent.config.db_setup import SessionLocal
 from src.mastercard_solution_tech_stack_agent.config.settings import Settings
+from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import (
+    system_logger,
+)
 from src.mastercard_solution_tech_stack_agent.services.model import agent_model as model
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 settings = Settings()
 db = SessionLocal()
@@ -44,7 +42,14 @@ class DomainKnowledgeManager:
                 with open(self.file_path, "r") as f:
                     return json.load(f)
         except (json.JSONDecodeError, Exception) as e:
-            logger.warning(f"Error loading domain knowledge: {e}")
+            system_logger.error(
+                e,
+                additional_info={
+                    "context": "Error loading domain knowledge",
+                    "file_path": str(self.file_path),
+                },
+                exc_info=True,
+            )
 
         return {
             "common_domains": [
@@ -65,7 +70,14 @@ class DomainKnowledgeManager:
             with open(self.file_path, "w") as f:
                 json.dump(self.knowledge, f, indent=2)
         except Exception as e:
-            logger.error(f"Error saving domain knowledge: {e}")
+            system_logger.error(
+                e,
+                additional_info={
+                    "context": "Error saving domain knowledge",
+                    "file_path": str(self.file_path),
+                },
+                exc_info=True,
+            )
 
     def add_domain(self, domain: str, insights: str = ""):
         domain = domain.strip()

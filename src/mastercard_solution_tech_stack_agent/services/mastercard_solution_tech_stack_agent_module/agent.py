@@ -1,4 +1,3 @@
-import logging
 from enum import Enum
 from pathlib import Path
 from typing import Annotated, Dict, List, Optional, Tuple
@@ -13,6 +12,9 @@ from langgraph.graph.message import AnyMessage, add_messages
 from langgraph.prebuilt import ToolNode, tools_condition
 from typing_extensions import TypedDict
 
+from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import (
+    system_logger,
+)
 from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_stack_agent_module.toolskit import (
     domain_knowledge_manager,
     tools,
@@ -22,10 +24,6 @@ from src.mastercard_solution_tech_stack_agent.utilities.helpers import (
     load_pillar_questions,
     load_yaml_file,
 )
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 # === CONFIG ===
 PROMPT_PATH = (
@@ -92,7 +90,14 @@ def _initialize_components():
             "stack_generator": stack_generator,
         }
     except Exception as e:
-        logger.error(f"Error initializing components: {e}")
+        system_logger.error(
+            e,
+            additional_info={
+                "context": "Error initializing components",
+                "raw_output": str(e),
+            },
+            exc_info=True,
+        )
         raise
 
 
@@ -134,7 +139,14 @@ class Assistant:
             state["last_message"] = message
             return state
         except Exception as e:
-            logger.error(f"Error pushing message: {e}")
+            system_logger.error(
+                e,
+                additional_info={
+                    "context": "Error pushing message",
+                    "raw_output": str(e),
+                },
+                exc_info=True,
+            )
             return state
 
     async def handle_domain_input(self, state: State) -> Tuple[Dict, bool]:
@@ -268,7 +280,14 @@ class Assistant:
             return self._continue_converation(state)
 
         except Exception as e:
-            logger.error(f"Error in run method: {e}")
+            system_logger.error(
+                e,
+                additional_info={
+                    "context": "Error in run method",
+                    "raw_output": str(e),
+                },
+                exc_info=True,
+            )
             return self._push(
                 state, "⚠️ Sorry, I encountered an error. Let me try again..."
             )

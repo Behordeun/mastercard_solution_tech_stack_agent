@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import uuid
 from functools import wraps
 from typing import Any, Callable, Dict
@@ -26,7 +25,6 @@ from src.mastercard_solution_tech_stack_agent.services.mastercard_solution_tech_
     prompt_template,
 )
 
-logger = logging.getLogger(__name__)
 db_uri = f"postgresql://{env_config.user}:{env_config.password}@{env_config.host}/{env_config.database}"
 
 
@@ -179,7 +177,7 @@ class ChatProcessor:
 
 
 async def chat_event(db: Any, message: Chat_Message) -> Dict[str, Any]:
-    logger.info(f"TSA145: Received input: {message.message}")
+    system_logger.info(f"TSA145: Received input: {message.message}")
 
     try:
         if not message.message.strip():
@@ -207,7 +205,7 @@ async def chat_event(db: Any, message: Chat_Message) -> Dict[str, Any]:
 
 
 async def create_chat(db: Any, session_id: str) -> Dict[str, Any]:
-    logger.info(f"Create Chat")
+    system_logger.info("TSA145: Create Chat started")
 
     try:
         user_id = str(uuid.uuid4())

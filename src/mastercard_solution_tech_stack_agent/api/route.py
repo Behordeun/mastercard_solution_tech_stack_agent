@@ -182,14 +182,12 @@ async def chat(
         )
 
     except GraphInvocationError as e:
-        # logger.error("AI graph invocation failed: %s", e, exc_info=True)
         system_logger.error(e, exc_info=True)
         return JSONResponse(
             content={"content": "AI service error occurred. Please try again later."},
             status_code=502,
         )
     except Exception as e:
-        # logger.exception("Unexpected error in /chat-ai route.")
         system_logger.error(e, exc_info=True)
         return JSONResponse(
             content={"content": "Unexpected server error occurred."},
@@ -261,7 +259,6 @@ async def get_chat_history(
 
         return conversation_history
     except SQLAlchemyError as e:
-        # logger.error("Database error retrieving chat history: %s", e, exc_info=True)
         system_logger.error(e, exc_info=True)
         raise HTTPException(
             status_code=500,
@@ -285,7 +282,6 @@ async def get_room_state(
         return jsonable_encoder(session_state)[0]
 
     except Exception as e:
-        # logger.exception("Unexpected error in /session_state route.")
         system_logger.error(e, exc_info=True)
         return JSONResponse(
             content={"content": "Unexpected server error occurred."},
@@ -319,7 +315,6 @@ async def coversation_summary(
         )
         return ConversationSummary(summary=summary["conversation"])
     except Exception as e:
-        # logger.exception("Unexpected error in /recommend_stack route.")
         system_logger.error(e, exc_info=True)
         return JSONResponse(
             content={"content": "Unexpected server error occurred."},
@@ -362,7 +357,6 @@ async def recommend_stack(
         )
 
     except Exception as e:
-        # logger.exception("Unexpected error in /recommend_stack route.")
         system_logger.error(e, exc_info=True)
         return JSONResponse(
             content={"content": "Unexpected server error occurred."},
