@@ -1,22 +1,46 @@
 body {
+
     font-family: Arial, sans-serif;
+
     margin: 40px;
-    background-color: #f0f0f0;
+
+    background-color: #FFF4E5; /* Soft background aligned with Mastercard’s warm palette */
+
 }
+ 
 h1 {
-    color: #333;
+
+    color: #E4002B; /* Mastercard red */
+
     text-align: center;
+
 }
+ 
 p {
+
     font-size: 16px;
+
     line-height: 1.6;
-    color: #555;
+
+    color: #444; /* Deep neutral for better contrast */
+
 }
+ 
 .container {
-    background-color: #fff;
+
+    background-color: #ffffff;
+
     padding: 20px;
+
     border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+
+    box-shadow: 0 0 12px rgba(0, 0, 0, 0.08);
+
     max-width: 800px;
+
     margin: 0 auto;
+
+    border-left: 5px solid #F9A800; /* Mastercard yellow-orange accent */
+
 }
+ 
