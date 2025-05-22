@@ -57,7 +57,7 @@ function displayUserSessions(sessions) {
   sessions.forEach(session => {
     const listItem = document.createElement("li");
     const link = document.createElement("a");
-    link.href = `?${session.session_id}`; // You can set the link to do something, e.g., load the chat history for that session
+    link.href = `?room_id=${session.session_id}`; // You can set the link to do something, e.g., load the chat history for that session
     link.textContent = `Session: ${session.session_id.substring(0, 8)}... Created: ${new Date(session.created_at).toLocaleDateString()}`; // Customize the display as needed
     listItem.appendChild(link);
     sidebar.appendChild(listItem);
@@ -65,10 +65,12 @@ function displayUserSessions(sessions) {
 }
 
 async function loadChatHistory() {
-  let roomId = new URLSearchParams(window.location.search).get('tsa145_room');
-
+  let roomId = new URLSearchParams(window.location.search).get('room_id');
+  // console.log("Room Id is ", roomId)
   if (!roomId){
     roomId = localStorage.getItem("tsa145_room")
+  } else {
+    localStorage.setItem("tsa145_room", roomId);
   }
 
   if (!roomId){

@@ -49,7 +49,7 @@
     <div id="pillar-banner"></div>
     <div class="chat-box" id="chat-box"></div>
     <div class="chat-input-container">
-      <input type="text" id="user-input" class="chat-input" placeholder="Type your message..." onkeypress="handleKeyPress(event)">
+      <textarea id="user-input" class="chat-input" placeholder="Type your message..." onkeypress="handleKeyPress(event)" rows="4"></textarea>
       <button class="send-btn" onclick="sendMessage()">Send</button>
       <!-- Reset Button -->
       <button class="reset-btn" onclick="resetChat()">Reset Chat</button>
