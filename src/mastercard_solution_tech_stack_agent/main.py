@@ -1,7 +1,7 @@
 # import libraries
 import os
-import warnings
 import traceback
+import warnings
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -121,14 +121,18 @@ templates = Jinja2Templates(
 async def serve_ui(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 
+
 # === Serve Signup ===
 @app.get("/signup", response_class=HTMLResponse)
 async def serve_signup(request: Request):
     return templates.TemplateResponse("signup.html", {"request": request})
+
+
 # === Serve Chat UI ===
 @app.get("/chat", response_class=HTMLResponse)
 async def serve_chat(request: Request):
     return templates.TemplateResponse("chat.html", {"request": request})
+
 
 # === Serve Summarization ===
 @app.get("/summary", response_class=HTMLResponse)
@@ -162,7 +166,7 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
         f"Method: {request.method}\n"
         f"Traceback:\n{error_trace}"
     )
- 
+
     # Return detailed error response (customize based on environment)
     return JSONResponse(
         status_code=exc.status_code,
@@ -176,7 +180,6 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
             }
         },
     )
- 
 
 
 # === API Info Endpoint ===

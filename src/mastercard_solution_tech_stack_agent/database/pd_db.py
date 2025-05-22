@@ -1,4 +1,3 @@
-import logging
 from contextlib import contextmanager
 from datetime import datetime
 from typing import Generator, Optional
@@ -142,6 +141,7 @@ def save_techstack(db: Session, session_id, recommended_stack):
         system_logger.error(f"Error saving tech stack: {e}", exc_info=True)
         raise
 
+
 def get_user_sessions(db: Session, user_id: str) -> list[UserSession]:
     """
     Retrieve all sessions created by a specific user.
@@ -149,9 +149,11 @@ def get_user_sessions(db: Session, user_id: str) -> list[UserSession]:
     try:
         return db.query(UserSession).filter_by(user_id=user_id).all()
     except SQLAlchemyError as e:
-        system_logger.error(f"Error fetching user sessions for user_id {user_id}: {e}", 
-                            exc_info=True)
+        system_logger.error(
+            f"Error fetching user sessions for user_id {user_id}: {e}", exc_info=True
+        )
         raise
+
 
 def get_conversation_history(db: Session, session_id: str, k: int = 48) -> str:
     try:

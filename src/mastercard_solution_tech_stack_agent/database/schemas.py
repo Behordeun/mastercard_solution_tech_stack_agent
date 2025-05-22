@@ -30,7 +30,6 @@ class UserSession(Base):
         "ConversationHistory", back_populates="user_sessions"
     )
     user = relationship("User", back_populates="user_sessions")
-    
 
 
 class ConversationHistory(Base):

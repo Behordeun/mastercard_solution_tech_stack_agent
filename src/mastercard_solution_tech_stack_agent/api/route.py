@@ -1,6 +1,6 @@
 import os
 import uuid
-from typing import Annotated, Union, List
+from typing import Annotated, List, Union
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.encoders import jsonable_encoder
@@ -15,18 +15,18 @@ from src.mastercard_solution_tech_stack_agent.api.data_model import (
     ConversationSummary,
     ProjectDescriptionRequest,
     ProjectDescriptionResponse,
-    UserSession
+    UserSession,
 )
 from src.mastercard_solution_tech_stack_agent.api.logs_router import (
     router as logs_router,
 )
 from src.mastercard_solution_tech_stack_agent.config.db_setup import SessionLocal
 from src.mastercard_solution_tech_stack_agent.database.pd_db import (
-    get_conversation_history,   
+    get_conversation_history,
     get_summary,
+    get_user_sessions,
     save_summary,
     save_techstack,
-    get_user_sessions   
 )
 from src.mastercard_solution_tech_stack_agent.database.schemas import User
 from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import (
@@ -132,7 +132,7 @@ router.include_router(logs_router)
 async def project_description(
     payload: ProjectDescriptionRequest,
     current_user: Annotated[User, Depends(get_current_user)],
-     description="Submit a project description including category, title, and session ID. Custom categories are also supported."
+    description="Submit a project description including category, title, and session ID. Custom categories are also supported.",
 ):
     """
     Accepts project title, description, category, and session_id.
@@ -161,7 +161,7 @@ async def chat(
     message: Chat_Message,
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
-    description="Submit a user message and receive a response from the AI agent powered by LangGraph."
+    description="Submit a user message and receive a response from the AI agent powered by LangGraph.",
 ):
     """
     Handle AI interaction via LangGraph based on user input.
@@ -194,6 +194,7 @@ async def chat(
             status_code=500,
         )
 
+
 @router.post("/sessions", response_model=UserSession, status_code=201)
 async def create_session(
     db: Annotated[Session, Depends(get_db)],
@@ -208,26 +209,29 @@ async def create_session(
 
     try:
         # Create a new session in the database
-        new_session = await create_chat(db=db, session_id=session_id, user_id=str(user_id))
-        
-        # Return the new session details
-        return UserSession(
-            session_id=session_id,
-            user_id=str(user_id)
+        new_session = await create_chat(
+            db=db, session_id=session_id, user_id=str(user_id)
         )
+
+        # Return the new session details
+        return UserSession(session_id=session_id, user_id=str(user_id))
     except SQLAlchemyError as e:
-        system_logger.error(f"Database error creating new session for user_id {user_id}: {e}", exc_info=True)
+        system_logger.error(
+            f"Database error creating new session for user_id {user_id}: {e}",
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=500,
             detail="Failed to create a new session due to a database error.",
         ) from e
+
 
 # === GET /user_sessions ===
 @router.get("/user_sessions", response_model=List[UserSession])
 async def get_all_user_sessions(
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
-    description="Retrieve all sessions created by a specific user."
+    description="Retrieve all sessions created by a specific user.",
 ):
     """
     Fetch all sessions for a given user ID.
@@ -237,11 +241,15 @@ async def get_all_user_sessions(
         user_sessions = get_user_sessions(db, user_id=user_id)
         return user_sessions
     except SQLAlchemyError as e:
-        system_logger.error(f"Database error retrieving user sessions for user_id {user_id}: {e}", exc_info=True)
+        system_logger.error(
+            f"Database error retrieving user sessions for user_id {user_id}: {e}",
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=500,
             detail="Failed to retrieve user sessions due to a database error.",
         ) from e
+
 
 # === GET /session_history ===
 @router.get("/chat-history", response_model_exclude_unset=True)
@@ -249,7 +257,7 @@ async def get_chat_history(
     session_id,
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
-    description="Retrieve previous conversation history for a given session ID."
+    description="Retrieve previous conversation history for a given session ID.",
 ):
     """
     Fetch previous chat history for a given room ID.
@@ -271,7 +279,7 @@ async def get_chat_history(
 async def get_room_state(
     session_id,
     current_user: Annotated[User, Depends(get_current_user)],
-    description="Retrieve the current state (graph memory) of a conversation session."
+    description="Retrieve the current state (graph memory) of a conversation session.",
 ):
     """
     Fetches the state of a particular room to the front end.
@@ -294,7 +302,7 @@ async def coversation_summary(
     session_id,
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
-    description="Get the summarized content of the entire conversation if the pillar stage is completed."
+    description="Get the summarized content of the entire conversation if the pillar stage is completed.",
 ):
     """
     Fetch the conversation summary
@@ -327,7 +335,7 @@ async def recommend_stack(
     session_id,
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
-    description="Retrieve a recommended tech stack based on the completed conversation summary."
+    description="Retrieve a recommended tech stack based on the completed conversation summary.",
 ):
     """
     Fetch the recommend stack

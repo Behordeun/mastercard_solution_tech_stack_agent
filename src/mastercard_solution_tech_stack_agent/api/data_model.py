@@ -20,6 +20,7 @@ LOG_FILES = {
 
 T = TypeVar("T")
 
+
 class UserSession(BaseModel):
     session_id: str
     user_id: int
@@ -38,6 +39,7 @@ class UserSession(BaseModel):
                 "created_at": "2024-01-01T12:00:00",
             }
         }
+
 
 class PaginationMetadata(BaseModel):
     total: int
