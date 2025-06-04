@@ -184,4 +184,3 @@ refactored_nodes.py
 .idea
 *.sqlite3
 *.pem
-src/mastercard_solution_tech_stack_agent/documentation
