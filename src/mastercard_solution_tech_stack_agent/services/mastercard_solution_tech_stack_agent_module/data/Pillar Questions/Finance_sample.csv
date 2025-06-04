@@ -1,0 +1,85 @@
+Pillar,Description,Questions
+Software,"Focuses on how the solution will be built, including frontend, backend, APIs, and cloud infrastructure.","What programming languages and frameworks will be used for frontend and backend?"
+,,How will the app connect securely to banks and financial institutions?
+,,"Will the platform be available on both mobile and web?"
+,,Are cloud-native principles (e.g., microservices, containers) being used?
+
+Security,"Addresses the security measures needed to protect user data and system integrity.","Is sensitive financial data encrypted both at rest and in transit?"
+,,Are multi-factor authentication (MFA) and biometric logins supported?
+,,"Is the app regularly tested for vulnerabilities (e.g., penetration testing)?"
+,,Are secure coding standards and practices being followed (e.g., OWASP)?
+
+Infrastructure,"Focuses on the underlying infrastructure, including cloud services and hosting.","Which cloud platform will host the services (e.g., AWS, GCP)?"
+,,Are there plans for high availability and redundancy?
+,,"How will disaster recovery and data backup be managed?"
+
+Integration,"Deals with how the solution will integrate with existing systems and services.","Which financial APIs will be integrated (e.g., Plaid, Yodlee)?"
+,,Will there be integration with investment or retirement platforms?
+,,"How will third-party service downtime be handled?"
+
+User Experience,"Focuses on the design and usability of the solution.","Is the interface intuitive for users with varying financial literacy?"
+,,Will the app provide visualizations like graphs and summaries?
+,,"How will onboarding be simplified for first-time users?"
+
+Performance,"Addresses the performance and scalability of the solution.","Can the app process large volumes of transactions quickly?"
+,,Are performance benchmarks defined for syncing with bank APIs?
+,,"What is the target response time for dashboard loading?"
+
+Compliance,"Focuses on legal and regulatory compliance requirements.","Does the platform comply with financial regulations like PSD2, GDPR, or CCPA?"
+,,How is user consent for data access and sharing handled?
+,,"Are financial data and access logs auditable?"
+
+Support,"Addresses the support and maintenance of the solution.","Is there in-app support like chat or a ticketing system?"
+,,What channels (email, phone, chatbot) will be used for user support?
+,,"Will there be proactive alerts for system outages or updates?"
+
+Cost,"Focuses on budget and financial considerations.","What is the estimated cost for initial development and launch?"
+,,Will users be charged a subscription fee or will there be a freemium model?
+,,"What are the ongoing costs for cloud, APIs, and support?"
+
+Scalability,"Addresses how the solution will scale to meet future needs.","Can the architecture handle rapid user growth?"
+,,Are database and services built to scale horizontally?
+,,"What strategies are in place to scale feature rollouts?"
+
+Interoperability,"Focuses on how the solution will work with other systems and technologies.","Does the app support industry-standard APIs (e.g., OFX, ISO 20022)?"
+,,Can the system export data for accounting tools (e.g., QuickBooks)?
+,,"Will users be able to import historical data from other platforms?"
+
+User Management,"Focuses on how users will be managed within the system.","How are user accounts, profiles, and financial goals managed?"
+,,Are role-based permissions required (e.g., advisor vs. end user)?
+,,"Is there a guest/demo mode for new users?"
+
+Monitoring,"Addresses how the system will be monitored and maintained.","Are real-time monitoring tools in place (e.g., Datadog, Prometheus)?"
+,,Will logs be centralized and analyzed for anomalies?
+,,"Are there alerts for failed transactions or sync errors?"
+
+Testing,"Focuses on how the solution will be tested and validated.","What test coverage is expected (unit, integration, E2E)?"
+,,Are financial calculations being tested for accuracy?
+,,"How is testing handled for third-party API changes?"
+
+Deployment,"Addresses how the solution will be deployed and maintained.","Is CI/CD used to automate code deployment and rollback?"
+,,Are staging environments identical to production?
+,,"Will deployments be zero-downtime?"
+
+Collaboration,"Focuses on how users will collaborate and communicate within the system.","Can users share budgets or goals with family members or advisors?"
+,,Is there support for co-managed accounts?
+,,"Will notifications support collaboration (e.g., goal progress)?"
+
+Analytics,"Addresses how data will be collected, analyzed, and reported.","What KPIs and metrics will users see (e.g., savings rate, expense trends)?"
+,,Is spending behavior analyzed for personalized advice?
+,,"Can users export or schedule reports?"
+
+User Feedback,"Focuses on how user feedback will be collected and acted upon.","Is there an in-app feedback and suggestion feature?"
+,,Will NPS or user satisfaction surveys be used?
+,,"How will feedback influence product roadmap priorities?"
+
+Data,"Focuses how users data would be stored and the kind of data that would be stored","What types of user data will be stored (e.g., transactions, budgets)?"
+,,Is sensitive data anonymized for internal analytics?
+,,"How long is financial data retained, and is it deletable by users?"
+
+Accessibility,"Ensures that the solution is usable by individuals with disabilities, meeting relevant standards and guidelines.","Does the platform meet WCAG 2.1 accessibility standards?"
+,,Are screen readers, color contrast, and font sizing supported?
+,,"Can the app be navigated without a mouse or touchscreen gestures?"
+
+Legal Considerations,"Addresses legal aspects of the solution.","Are clear terms of service and privacy policies available to users?"
+,,Are third-party data-sharing agreements legally vetted?

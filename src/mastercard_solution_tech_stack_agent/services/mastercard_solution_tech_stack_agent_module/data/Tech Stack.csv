@@ -23,4 +23,3 @@ Tool id,Name,Entity Type,Entity Category,Entity Sub Category,Description,License
 22,Solarwinds,Monitoring and Logging,Both Authentication and Authorization,,Solarwinds is a unified security and observability platform.,Commercial,
 23,Angular JS,Framework / Libraries,Web Development,Frontend,"Angular is a web frontend framework that empowers developers to build fast, reliable applications.",Open Source.,
 24,Vue JS,Framework / Libraries,Web Development,Frontend,Vue JS is an open-source model–view–viewmodel front end JavaScript framework for building user interfaces and single-page applications.,Open Source.,
-25,,,,,,,

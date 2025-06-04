@@ -29,11 +29,11 @@ from src.mastercard_solution_tech_stack_agent.error_trace.errorlogger import (
     system_logger,
 )
 from src.mastercard_solution_tech_stack_agent.utilities.Printer import printer
+from src.mastercard_solution_tech_stack_agent.config.settings import Settings
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
-
 
 settings = Settings()
 

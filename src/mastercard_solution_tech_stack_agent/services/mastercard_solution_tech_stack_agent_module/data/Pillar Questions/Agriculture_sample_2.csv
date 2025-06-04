@@ -1,0 +1,94 @@
+Pillar,Description,Questions
+Software,"Focuses on how the solution will be built, including frontend, backend, APIs, and cloud infrastructure.","What software architecture supports the platform (e.g., microservices, event-driven)?"
+,,Which platforms (mobile/web) are supported?
+,,"Is the platform modular for future features (e.g., crop-specific tools)?"
+,,How is version control and code quality managed?
+
+Security,"Addresses the security measures needed to protect user data and system integrity.","Is end-to-end encryption implemented?"
+,,How is farmers' personal and geospatial data secured?
+,,"Are there measures to protect from cyberattacks (e.g., DDoS)?"
+,,Are secure coding practices followed (OWASP compliance)?
+
+Infrastructure,"Focuses on the underlying infrastructure, including cloud services and hosting.","Which cloud provider(s) will be used (e.g., AWS, Azure)?"
+,,Will the solution use containerization or serverless architecture?
+,,"Is there a backup and disaster recovery plan?"
+
+Integration,"Deals with how the solution will integrate with existing systems and services.","Does the platform need to integrate with government agricultural databases?"
+,,Will integration with third-party weather or satellite APIs be required?
+,,"How will data sync and communication be managed between systems?"
+
+User Experience,"Focuses on the design and usability of the solution.","Is the platform accessible and intuitive for non-tech-savvy users?"
+,,What languages or regional dialects will be supported?
+,,"How will feedback loops be integrated into the user journey?"
+
+Performance,"Addresses the performance and scalability of the solution.","What is the expected load in terms of concurrent users?"
+,,How is latency managed in data-heavy areas like satellite imaging?
+,,"Are there automated tools to test performance under stress?"
+
+Compliance,"Focuses on legal and regulatory compliance requirements.","Are data storage and processing compliant with GDPR or local regulations?"
+,,Does the platform support consent management for data usage?
+,,"Are audit trails and data access logs maintained?"
+
+Support,"Addresses the support and maintenance of the solution.","Is there a 24/7 support plan in place for users?"
+,,Will in-app support like chat or ticketing be available?
+,,"How will updates and bug fixes be managed post-launch?"
+
+Cost,"Focuses on budget and financial considerations.","What is the estimated cost of development and deployment?"
+,,What is the ongoing cost of cloud hosting and API usage?
+,,"Is there a cost model for small vs large-scale users (e.g., small farms vs enterprises)?"
+
+Scalability,"Addresses how the solution will scale to meet future needs.","Can the platform handle regional and national expansion?"
+,,Will the system need horizontal scaling for user traffic?
+,,"Is the database architecture designed for large-scale data ingestion?"
+
+Interoperability,"Focuses on how the solution will work with other systems and technologies.","Does the platform support standard protocols (e.g., REST, MQTT)?"
+,,Can the system share data with third-party agri-tech solutions?
+,,"Is there a need for custom adapters or middleware?"
+
+User Management,"Focuses on how users will be managed within the system.","How are user roles and permissions defined (e.g., farmer, agronomist)?"
+,,Is there support for identity providers like Google or Aadhaar?
+,,"How is user onboarding and profile management handled?"
+
+Monitoring,"Addresses how the system will be monitored and maintained.","Are real-time health checks and uptime monitoring in place?"
+,,How are alerts configured for service degradation or failures?
+,,"Will logs be centralized and searchable (e.g., ELK stack)?"
+
+Testing,"Focuses on how the solution will be tested and validated.","What testing methodologies will be used (unit, integration, acceptance)?"
+,,Are there automated test pipelines integrated in CI/CD?
+,,"How is user acceptance testing (UAT) conducted with target users?"
+
+Deployment,"Addresses how the solution will be deployed and maintained.","Is a CI/CD pipeline established for smooth deployment?"
+,,Will updates be rolled out incrementally or all at once?
+,,"Are rollback strategies in place in case of failed deployments?"
+
+Collaboration,"Focuses on how users will collaborate and communicate within the system.","Can users share insights or recommendations with peers?"
+,,Is there a forum or messaging feature planned?
+,,"Can agronomists collaborate on field data analysis?"
+
+Analytics,"Addresses how data will be collected, analyzed, and reported.","What kind of dashboards or insights will be provided to users?"
+,,Is predictive analytics used for crop or disease forecasting?
+,,"How will data be visualized for different user roles?"
+
+User Feedback,"Focuses on how user feedback will be collected and acted upon.","How is user feedback collected in-app or via survey?"
+,,Is there a feedback loop tied to new features or updates?
+,,"How are usability issues tracked and prioritized?"
+
+Data,"Focuses how users data would be stored and the kind of data that would be stored","What types of data will be stored (e.g., soil data, crop history)?"
+,,Is user data anonymized for analytics purposes?
+,,"How is data lifecycle managed from ingestion to deletion?"
+
+Accessibility,"Ensures that the solution is usable by individuals with disabilities, meeting relevant standards and guidelines.","Does the design follow WCAG 2.1 guidelines?"
+,,Are screen readers or text-to-speech supported?
+,,"Is contrast and text size adjustable for low-vision users?"
+
+Legal Considerations,"Addresses legal aspects of the solution.","Is there a clear terms-of-service and data policy?"
+,,Are data ownership and IP rights clearly defined?
+,,"Is the platform liable for the accuracy of its recommendations?"
+
+Ethical & Responsible AI,"Ensures fair and responsible AI usage.","Is the AI model explainable to end-users?"
+,,Are bias and fairness audits conducted regularly?
+,,"How are incorrect or harmful recommendations handled?"
+
+Duration,"Ensures a clear definition of the product development lifecycle","What are the major phases and timelines for delivery?"
+,,Are there MVP and full-feature launch stages defined?
+,,"How will progress be tracked and communicated to stakeholders?"

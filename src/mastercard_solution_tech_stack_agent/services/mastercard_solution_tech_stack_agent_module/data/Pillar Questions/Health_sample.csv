@@ -1,0 +1,93 @@
+﻿Pillar,Description,Questions
+Software,"Focuses on how the solution will be built, including frontend, backend, APIs, and cloud infrastructure.","What software architecture will be used (monolithic, microservices, serverless)?"
+,,Are there plans for using open-source components?
+,,What are the programming languages and frameworks used?
+,,Is there a CI/CD pipeline in place?
+Security,Addresses the security measures needed to protect user data and system integrity.,How is data encryption handled in transit and at rest?
+,,What authentication and authorization mechanisms are in place?
+,,Is there an incident response plan?
+,,Are penetration tests and security audits conducted regularly?
+Infrastructure,"Focuses on the underlying infrastructure, including cloud services and hosting.","Is the platform hosted on cloud, on-prem, or hybrid?"
+,,What are the disaster recovery strategies?
+,,Is infrastructure as code (IaC) used?
+,,How is high availability ensured?
+Integration,Deals with how the solution will integrate with existing systems and services.,What APIs are exposed or consumed?
+,,"Are there any third-party systems (e.g., EHRs, payment gateways) integrated?"
+,,How is data synchronization handled?
+,,"What integration standards (FHIR, HL7, REST, SOAP) are followed?"
+User Experience,Focuses on the design and usability of the solution.,What personas are being designed for?
+,,How is usability tested?
+,,Are accessibility standards (WCAG) being followed?
+,,Is mobile responsiveness supported?
+Performance,Addresses the performance and scalability of the solution.,What are the system's load and stress test results?
+,,Are there latency benchmarks?
+,,How is performance monitored in production?
+,,How is caching handled?
+Compliance,Focuses on legal and regulatory compliance requirements.,"Does the system comply with HIPAA, GDPR, or other industry-specific regulations?"
+,,How is data retention managed?
+,,Are compliance audits documented?
+,,What is the breach notification policy?
+Support,Addresses the support and maintenance of the solution.,What are the SLAs for issue resolution?
+,,Is there a dedicated support team?
+,,"What channels are available for support (chat, ticketing, phone)?"
+,,Is 24/7 support available?
+Cost,Focuses on budget and financial considerations.,What is the total cost of ownership (TCO)?
+,,Are there any hidden licensing or scaling fees?
+,,What are the costs of integrations and third-party services?
+,,Is a cost-optimization plan in place?
+Can the system scale horizontally and vertically?
+Scalability,Addresses how the solution will scale to meet future needs.,Are there any bottlenecks in the current architecture?
+,,What auto-scaling mechanisms are in place?
+,,What’s the largest workload it has handled?
+Interoperability,Focuses on how the solution will work with other systems and technologies.,How does the system ensure compatibility with other platforms?
+,,"Are standards-based data formats used (e.g., JSON, XML)?"
+,,How are schema changes communicated to integrators?
+,,Is there a sandbox/test environment?
+User Management,Focuses on how users will be managed within the system.,How is role-based access control (RBAC) implemented?
+,,Is single sign-on (SSO) or multi-factor authentication (MFA) supported?
+,,Can user activity be audited?
+,,Are delegated administration capabilities available?
+Monitoring,Addresses how the system will be monitored and maintained.,"What tools are used for monitoring (e.g., Prometheus, Grafana)?"
+,,Are alerting thresholds clearly defined?
+,,Is logging centralized and searchable?
+,,How are outages reported?
+Testing,Focuses on how the solution will be tested and validated.,How is test coverage measured?
+,,"What levels of testing are automated (unit, integration, E2E)?"
+,,Are there environments for UAT?
+,,How is regression testing handled?
+Deployment,Addresses how the solution will be deployed and maintained.,Is blue/green or canary deployment used?
+,,"What is the release cycle (weekly, monthly)?"
+,,Are rollbacks possible and automated?
+,,Are there zero-downtime deployment strategies?
+Collaboration,Focuses on how users will collaborate and communicate within the system.,"What tools support cross-functional collaboration (e.g., Jira, Slack)?"
+,,How are design and development workflows coordinated?
+,,Are documentation and versioning practices enforced?
+,,Is there a shared roadmap?
+Analytics,"Addresses how data will be collected, analyzed, and reported.",What analytics dashboards are available?
+,,Can users create custom reports?
+,,How is data aggregated and visualized?
+,,Are business KPIs tracked?
+User Feedback,Focuses on how user feedback will be collected and acted upon.,"How is user feedback collected (in-app, surveys)?"
+,,How often is feedback reviewed?
+,,Are there feedback loops post-deployment?
+,,Is feedback used in roadmap planning?
+Data,Focuses how users data would be stored and the kind of data that would be stored,What is the data model and schema strategy?
+,,Are backups automated and tested?
+,,How is data validated and cleansed?
+,,What is the policy on data ownership and portability?
+Accessibility,"Ensures that the solution is usable by individuals with disabilities, meeting relevant standards and guidelines.",Are screen readers and keyboard navigation supported?
+,,Are localization and language options available?
+,,Is color contrast verified?
+,,Have users with disabilities been involved in testing?
+Legal Considerations,Addresses legal aspects of the solution.,Are terms of use and privacy policies up to date?
+,,Are licensing obligations of third-party tools met?
+,,Are patents or IP rights involved?
+,,Has legal reviewed API/data-sharing agreements?
+Ethical & Responsible AI ,Ensures fair and responsible AI usage.,Are AI models audited for bias?
+,,Is explainability in AI decisions provided?
+,,How is user consent managed for AI features?
+,,Are there kill-switches for critical AI features?
+Duration,Ensures a clear definition of the product development lifecycle,What is the estimated project timeline?
+,,What are the key milestones and deadlines?
+,,Is there a plan for phased releases?
+,,Are there dependencies or risks affecting the timeline?

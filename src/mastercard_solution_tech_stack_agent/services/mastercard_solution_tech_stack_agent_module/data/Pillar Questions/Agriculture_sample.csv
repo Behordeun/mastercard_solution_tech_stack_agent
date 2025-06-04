@@ -1,0 +1,93 @@
+﻿Pillar,Description,Questions
+Software,"Focuses on how the solution will be built, including frontend, backend, APIs, and cloud infrastructure.","What software architecture supports the platform (e.g., microservices, event-driven)?"
+,,Which platforms (mobile/web) are supported?
+,,"Is the platform modular for future features (e.g., crop-specific tools)?"
+,,How is version control and code quality managed?
+Security,Addresses the security measures needed to protect user data and system integrity.,Is end-to-end encryption implemented?
+,,How is farmers' personal and geospatial data secured?
+,,"Are there measures to protect from cyberattacks (e.g., DDoS)?"
+,,Are secure coding practices followed (OWASP compliance)?
+Infrastructure,"Focuses on the underlying infrastructure, including cloud services and hosting.",Is edge computing used for rural/remote operations?
+,,What cloud providers or data centers host the platform?
+,,Are IoT devices centrally managed?
+,,How is uptime guaranteed during peak seasons?
+Integration,Deals with how the solution will integrate with existing systems and services.,"Can the platform integrate with external APIs (e.g., government subsidies, weather services)?"
+,,Can drones and smart machinery feed data into the platform?
+,,"Are common protocols used (e.g., MQTT for sensors)?"
+,,How is interoperability with legacy farming systems ensured?
+User Experience,Focuses on the design and usability of the solution.,Are multilingual and offline modes available?
+,,Is the app accessible for users with limited digital literacy?
+,,Is UX tested with real farmers and agronomists?
+,,Are visual dashboards easily interpretable?
+Performance,Addresses the performance and scalability of the solution.,Are satellite images and maps optimized for speed?
+,,How does the platform perform with fluctuating sensor data loads?
+,,"How quickly does the system respond to real-time alerts (e.g., frost warnings)?"
+,,Are bottlenecks in sensor-to-cloud communication addressed?
+Compliance,Focuses on legal and regulatory compliance requirements.,Is data collection compliant with local agricultural data regulations?
+,,How is GDPR or similar compliance handled for user data?
+,,Are environmental reporting and sustainability mandates followed?
+,,Are pesticide or fertilizer usage guidelines digitally enforced?
+Support,Addresses the support and maintenance of the solution.,Are support agents trained in agriculture?
+,,Is 24/7 support available during critical farming periods?
+,,"Are there escalation procedures for hardware (e.g., sensor failure)?"
+,,Is support available in local languages?
+Cost,Focuses on budget and financial considerations.,Are IoT devices and sensor costs included or separate?
+,,"What is the pricing model (subscription, freemium, pay-per-acre)?"
+,,Are there government or NGO subsidies integrated?
+,,What’s the ROI for farmers?
+Scalability,Addresses how the solution will scale to meet future needs.,How does the system handle sensor expansion?
+,,"Can the platform scale across different crops, climates, and geographies?"
+,,Can multiple farms be managed under a single dashboard?
+,,Are there plans for expansion to livestock or aquaculture?
+Interoperability,Focuses on how the solution will work with other systems and technologies.,Is integration with regional agricultural co-operatives or marketplaces possible?
+,,Can the system work with tractor telemetry or irrigation control systems?
+,,Are APIs public and well-documented?
+,,Are open standards like AgGateway or ISO 11783 supported?
+User Management,Focuses on how users will be managed within the system.,"Can multiple users (e.g., farm workers) be added per farm?"
+,,Is mobile number-based authentication used for rural areas?
+,,Are role-based permissions supported?
+,,Can agronomists monitor multiple clients securely?
+Monitoring,Addresses how the system will be monitored and maintained.,"Are sensor readings (soil, moisture, weather) monitored continuously?"
+,,How is downtime of IoT devices detected?
+,,"Can anomaly alerts (e.g., low soil moisture) be configured?"
+,,Are power/battery health metrics monitored?
+Testing,Focuses on how the solution will be tested and validated.,Is there a QA process for satellite data accuracy?
+,,How are field devices tested under varied weather/soil conditions?
+,,Are updates tested in simulated farm environments?
+,,Are usability tests conducted with farmers?
+Deployment,Addresses how the solution will be deployed and maintained.,How are software and firmware updates deployed in the field?
+,,Are OTA (over-the-air) updates supported for IoT devices?
+,,Are seasonal rollouts coordinated with farming calendars?
+,,Are fallback mechanisms available for failed updates?
+Collaboration,Focuses on how users will collaborate and communicate within the system.,Are annotations or shared notes possible on maps or reports?
+,,Can users collaborate with agri-consultants or supply chain partners?
+,,Can farmer cooperatives manage shared resources?
+,,Are training materials shared across user groups?
+Analytics,"Addresses how data will be collected, analyzed, and reported.",Can users track historical trends by location or crop?
+,,"Are crop health, yield predictions, and resource usage analytics provided?"
+,,"Are dashboards tailored for different stakeholders (farmer, agri-co-op, investor)?"
+,,Can AI models suggest planting schedules?
+User Feedback,Focuses on how user feedback will be collected and acted upon.,Is there a beta tester group from farming communities?
+,,Is farmer feedback collected via app or hotline?
+,,How is feedback prioritized and implemented?
+,,Are satisfaction surveys region-specific?
+Data,Focuses how users data would be stored and the kind of data that would be stored,"Are images, logs, and sensor data stored securely and efficiently?"
+,,"What is the data lifecycle (collection, storage, usage)?"
+,,Is offline sync supported for remote areas?
+,,Are data export features available?
+Accessibility,"Ensures that the solution is usable by individuals with disabilities, meeting relevant standards and guidelines.",Are color-blind safe palettes used?
+,,"Is the app usable with low literacy levels (icons, voice)?"
+,,Are audio or SMS-based interactions supported?
+,,Are older generation phones compatible?
+Legal Considerations,Addresses legal aspects of the solution.,Are local laws on drone imagery and land data respected?
+,,Is data-sharing with agricultural agencies legal and consented?
+,,Are EULAs and data-sharing agreements localized?
+,,Is intellectual property for AI models protected?
+Ethical & Responsible AI ,Ensures fair and responsible AI usage.,"Are AI recommendations (e.g., pesticide use) transparent and explainable?"
+,,Are farmers informed when decisions are AI-driven?
+,,Are AI models monitored for biases across regions and crops?
+,,Is AI used responsibly to promote sustainability?
+Duration,Ensures a clear definition of the product development lifecycle,What is the total timeline for MVP and full-scale rollout?
+,,"What are the critical milestones (pilot, training, scale)?"
+,,Are timelines adapted to planting/harvest cycles?
+,,How is seasonality accounted for in development?
