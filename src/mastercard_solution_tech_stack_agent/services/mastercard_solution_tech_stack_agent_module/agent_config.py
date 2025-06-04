@@ -23,6 +23,13 @@ class MasterCardAgentConfig(BaseSettings):
     PILLAR_QUESTION_FOLDER: str = "Pillar Questions"
     PILLAR_QUESTION_PATH: str = os.path.abspath(os.path.join(DATA_DIR, PILLAR_QUESTION_FOLDER))
     
+    BLUEPRINT_FOLDER: str = "Blueprint"
+    BLUEPRINT_FOLDER_PATH: str = os.path.abspath(os.path.join(DATA_DIR, BLUEPRINT_FOLDER))
+
+    blueprint_paths: dict = {
+        "Standard": os.path.abspath(os.path.join(BLUEPRINT_FOLDER_PATH, "blueprint.json"))
+    }
+
     pillar_question: dict = {
         "Agriculture Pillar 2": os.path.abspath(os.path.join(PILLAR_QUESTION_PATH, "Agriculture_sample_2.csv")), 
         "Agriculture Pillar 1": os.path.abspath(os.path.join(PILLAR_QUESTION_PATH, "Agriculture_sample_2.csv")), 

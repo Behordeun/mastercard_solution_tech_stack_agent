@@ -21,7 +21,7 @@ def create_project_vectorstore(embeddings = embeddings, collection_name = Master
         # structure each record to be in a single string and have metadata attached.
         kb_result = [
             Document(
-                page_content=f"Project Title: {d['Project Title']} \nProject Description {d['Project Description']}",
+                page_content=f"Project Title: {d['Project Title']} \nProject Description: {d['Project Description']}",
                 metadata=dict(
                     zip(
                         kb_data.columns,
